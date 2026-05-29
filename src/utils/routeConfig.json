@@ -1,0 +1,13 @@
+[
+  {
+    "prefix": "/dashboard/DECA",
+    "api": "https://testapi.lpu.in/authenticateapi/security/createToken",
+    "payloadType": "deca"
+  },
+  {
+    "prefix": "/dashboard/staff",
+    "api": "https://projectsapi.lpu.in/security/createTokenReactBridge",
+    "payloadType": "common"
+  } 
+ 
+]
