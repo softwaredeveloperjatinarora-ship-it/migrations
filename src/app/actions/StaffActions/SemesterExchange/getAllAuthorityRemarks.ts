@@ -21,8 +21,8 @@ export async function getAllAuthorityRemarks() {
   });
 
   try {
-    // const TOKEN = session?.user?.token;
-    const TOKEN = process.env.TOKEN;
+    const TOKEN = session?.user?.token;
+    // const TOKEN = process.env.TOKEN;
 
     const response = await axios.get(
       `${urls.basewebapiurl}/SemesterExchangeStudentBridge/GetAllRemarks`,

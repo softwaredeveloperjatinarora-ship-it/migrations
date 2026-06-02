@@ -53,7 +53,7 @@ const Navigation = ({ slider, setSlider }: NavigationProps) => {
     return (
       <Box sx={{ background: (theme) => theme.palette.background.paper, borderRadius: 0 }} py={2}>
         <Container sx={{ maxWidth: customizer.isLayout === 'boxed' ? 'lg' : '100%!important' }}>
-          <NavListing />
+          {/* <NavListing /> */}
         </Container>
       </Box>
     );

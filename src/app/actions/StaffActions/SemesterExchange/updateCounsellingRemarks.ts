@@ -1,17 +1,5 @@
 'use server';
 
-/**
- * POST Action: updateCounsellingRemarks
- * Endpoint: /SemesterExchangeStudent/UpdateCounsellingRemarks
- * Saves or updates counselling remarks for a student application.
- *
- * @param registrationNo    - Student registration number
- * @param applicationId     - Application ID
- * @param counsellingRemarks - Free-text counselling remarks
- *
- * Success condition: response.data.item1[0].returnId > 0
- * Duplicate:         response.data.item1[0].returnId === -1
- */
 
 import axios from 'axios';
 import { getServerSession } from 'next-auth';
@@ -42,8 +30,8 @@ export async function updateCounsellingRemarks(
       formData,
       {
         headers: {
-          // Authorization: `Bearer ${session?.user?.token}`,
-          Authorization: `Bearer ${TOKEN}`,
+          Authorization: `Bearer ${session?.user?.token}`,
+          // Authorization: `Bearer ${TOKEN}`,
         },
         httpsAgent: agent,
       },

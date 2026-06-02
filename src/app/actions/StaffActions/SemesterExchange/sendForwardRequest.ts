@@ -42,8 +42,8 @@ export async function sendForwardRequest(
       formData,
       {
         headers: {
-          // Authorization: `Bearer ${session?.user?.token}`,
-          Authorization: `Bearer ${TOKEN}`,
+          Authorization: `Bearer ${session?.user?.token}`,
+          // Authorization: `Bearer ${TOKEN}`,
         },
         httpsAgent: agent,
       },

@@ -1,23 +1,5 @@
 'use server';
 
-/**
- * POST Action: studentEvaluationAddNew
- * Endpoint: /SemesterExchangeStudent/InsertRecordSEInterviewEvaluation
- * Submits interview evaluation marks for a student.
- *
- * @param registrationNo          - Student registration number
- * @param academicsMarks          - 0-100
- * @param communicationSkillsMarks - 0-100
- * @param attitudeMarks           - 0-100
- * @param extraCurricularMarks    - 0-100
- * @param knowledgeMarks          - 0-100
- * @param comments                - Optional remarks text
- * @param remarksBy               - 'HOD' | 'HOW' | 'Faculty' etc.
- *
- * Success condition: response.data.item1[0].returnData > 0
- * Duplicate upload: response.data.item1[0].returnData === '-1'
- */
-
 import axios from 'axios';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/utils/authOptions';
@@ -67,8 +49,8 @@ export async function studentEvaluationAddNew(payload: EvaluationPayload) {
       formData,
       {
         headers: {
-          // Authorization: `Bearer ${session?.user?.token}`,
-          Authorization: `Bearer ${TOKEN}`,
+          Authorization: `Bearer ${session?.user?.token}`,
+          // Authorization: `Bearer ${TOKEN}`,
         },
         httpsAgent: agent,
       },

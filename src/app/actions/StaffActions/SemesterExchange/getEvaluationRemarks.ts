@@ -25,8 +25,8 @@ export async function getEvaluationRemarks(registrationNo: string) {
     const fullUrl = `${baseUrl}/SemesterExchangeStudentBridge/GetEvaluationRemarks?RegistrationNo=${encodeURIComponent(registrationNo)}`;
 
     const response = await axios.post(fullUrl, null, {
-      // headers: { Authorization: `Bearer ${token}` },
-      headers: { Authorization: `Bearer ${TOKEN}` },
+      headers: { Authorization: `Bearer ${token}` },
+      // headers: { Authorization: `Bearer ${TOKEN}` },
       httpsAgent: agent,
     });
 

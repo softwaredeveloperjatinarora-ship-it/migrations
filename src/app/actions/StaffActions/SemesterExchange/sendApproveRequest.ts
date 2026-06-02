@@ -44,8 +44,8 @@ export async function sendApproveRequest(
       formData,
       {
         headers: {
-          // Authorization: `Bearer ${token}`,
-          Authorization: `Bearer ${TOKEN}`,
+          Authorization: `Bearer ${token}`,
+          // Authorization: `Bearer ${TOKEN}`,
         },
         httpsAgent: agent,
       },

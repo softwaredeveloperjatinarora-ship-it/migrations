@@ -1,67 +1,94 @@
 'use client';
 
- 
-
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+// MUI imports to match DrawingDataTable UI
+import {
+  Card,
+  Box,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
+  Chip,
+  IconButton,
+  Tooltip,
+  TextField,
+  InputAdornment,
+  FormControl,
+  Select,
+  MenuItem,
+  Button,
+  Paper,
+} from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import {
+  Search as SearchIcon,
+  Visibility as VisibilityIcon,
+  Download as DownloadIcon,
+  PictureAsPdf as PictureAsPdfIcon,
+} from '@mui/icons-material';
 
 // ── Server Actions ──────────────────────────────────────────────────────────
-import { getEmployeeDetails }       from '@/app/actions/StaffActions/SemesterExchange/getEmployeeDetails';
-import { getAllApplications }        from '@/app/actions/StaffActions/SemesterExchange/getAllApplications';
-import { getAllAuthorityRemarks }    from '@/app/actions/StaffActions/SemesterExchange/getAllAuthorityRemarks';
-import { getEvaluationRemarks }     from '@/app/actions/StaffActions/SemesterExchange/getEvaluationRemarks';
-import { sendApproveRequest }       from '@/app/actions/StaffActions/SemesterExchange/sendApproveRequest';
-import { sendForwardRequest }       from '@/app/actions/StaffActions/SemesterExchange/sendForwardRequest';
-import { studentEvaluationAddNew }  from '@/app/actions/StaffActions/SemesterExchange/studentEvaluationAddNew';
+import { getEmployeeDetails } from '@/app/actions/StaffActions/SemesterExchange/getEmployeeDetails';
+import { getAllApplications } from '@/app/actions/StaffActions/SemesterExchange/getAllApplications';
+import { getAllAuthorityRemarks } from '@/app/actions/StaffActions/SemesterExchange/getAllAuthorityRemarks';
+import { getEvaluationRemarks } from '@/app/actions/StaffActions/SemesterExchange/getEvaluationRemarks';
+import { sendApproveRequest } from '@/app/actions/StaffActions/SemesterExchange/sendApproveRequest';
+import { sendForwardRequest } from '@/app/actions/StaffActions/SemesterExchange/sendForwardRequest';
+import { studentEvaluationAddNew } from '@/app/actions/StaffActions/SemesterExchange/studentEvaluationAddNew';
 import { updateCounsellingRemarks } from '@/app/actions/StaffActions/SemesterExchange/updateCounsellingRemarks';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
 interface Application {
-  applicationId:              string;
-  registrationNo:             string;
-  phoneNumber:                string;
-  whatsAppNo:                 string;
-  parentContact:              string;
-  counsellingStatus:          string;   // 'True' | 'False' | null
-  isApproved:                 string;   // 'True' | 'False' | null
-  dealingUId:                 string;
-  dealingUserInterviewRemarks:string;
-  dealingHODId:               string;
-  dealingHODRemarks:          string;
-  dealingHow:                 string;
-  dealingFaculty:             string;
-  dealingAuthority:           string;
-  counsellingRemarks:         string;
+  applicationId: string;
+  registrationNo: string;
+  phoneNumber: string;
+  whatsAppNo: string;
+  parentContact: string;
+  counsellingStatus: string;   // 'True' | 'False' | null
+  isApproved: string;   // 'True' | 'False' | null
+  dealingUId: string;
+  dealingUserInterviewRemarks: string;
+  dealingHODId: string;
+  dealingHODRemarks: string;
+  dealingHow: string;
+  dealingFaculty: string;
+  dealingAuthority: string;
+  counsellingRemarks: string;
   // Per-row role flags added by enrichApplications()
-  isdealingFaculty:           boolean;
-  isDealingAuthority:         boolean;
-  isHOD:                      boolean;
-  isHoW:                      boolean;
+  isdealingFaculty: boolean;
+  isDealingAuthority: boolean;
+  isHOD: boolean;
+  isHoW: boolean;
 }
 
 interface AuthorityRemarks {
-  applicationId:               string;
-  registrationNo:              string;
-  dealingUidRemarks:           string;
-  dealingHODRemarks:           string;
-  dealingHowRemarks:           string;
-  dealingHODInterviewRemarks:  string;
+  applicationId: string;
+  registrationNo: string;
+  dealingUidRemarks: string;
+  dealingHODRemarks: string;
+  dealingHowRemarks: string;
+  dealingHODInterviewRemarks: string;
   dealingUserInterviewRemarks: string;
-  facultyRemarks:              string;
-  hodRemarks:                  string;
-  howRemarks:                  string;
-  ApprovalRemarks:             string;
-  counsellingRemarks:          string;
-  counsellingStatus:           string;
+  facultyRemarks: string;
+  hodRemarks: string;
+  howRemarks: string;
+  ApprovalRemarks: string;
+  counsellingRemarks: string;
+  counsellingStatus: string;
 }
 
 interface EvalForm {
-  academicsMarks:           string;
+  academicsMarks: string;
   communicationSkillsMarks: string;
-  attitudeMarks:            string;
-  extraCurricularMarks:     string;
-  knowledgeMarks:           string;
-  comments:                 string;
+  attitudeMarks: string;
+  extraCurricularMarks: string;
+  knowledgeMarks: string;
+  comments: string;
 }
 
 const EMPTY_EVAL: EvalForm = {
@@ -80,56 +107,59 @@ interface Toast { id: number; type: ToastType; title: string; text?: string }
 
 export default function DynamicDashboard() {
   // ── Bootstrap state ──
-  const [loading,       setLoading]       = useState(true);
+  const [loading, setLoading] = useState(true);
   const [isLoginFailed, setIsLoginFailed] = useState(false);
 
   // ── Employee info ──
-  const [employeeName,   setEmployeeName]   = useState('');
-  const [employeeCode,   setEmployeeCode]   = useState('');
+  const [employeeName, setEmployeeName] = useState('');
+  const [employeeCode, setEmployeeCode] = useState('');
   const [departmentName, setDepartmentName] = useState('');
-  const [pageTitle,      setPageTitle]      = useState('Dashboard');
+  const [pageTitle, setPageTitle] = useState('Dashboard');
 
   // ── Data ──
-  const [allApplications,     setAllApplications]     = useState<Application[]>([]);
+  const [allApplications, setAllApplications] = useState<Application[]>([]);
   const [visibleApplications, setVisibleApplications] = useState<Application[]>([]);
-  const [authorityRemarks,    setAuthorityRemarks]    = useState<AuthorityRemarks[]>([]);
+  const [authorityRemarks, setAuthorityRemarks] = useState<AuthorityRemarks[]>([]);
 
   // ── Role flags (global) ──
-  const [isdealingFaculty,    setIsdealingFaculty]    = useState(false);
-  const [isDealingAuthority,  setIsDealingAuthority]  = useState(false);
-  const [isHOD,               setIsHOD]               = useState(false);
-  const [isHoW,               setIsHoW]               = useState(false);
+  const [isdealingFaculty, setIsdealingFaculty] = useState(false);
+  const [isDealingAuthority, setIsDealingAuthority] = useState(false);
+  const [isHOD, setIsHOD] = useState(false);
+  const [isHoW, setIsHoW] = useState(false);
 
   // ── Pagination ──
   const [currentPage, setCurrentPage] = useState(1);
 
   // ── Evaluation modal ──
-  const [showEvalModal,      setShowEvalModal]      = useState(false);
-  const [evalForm,           setEvalForm]           = useState<EvalForm>(EMPTY_EVAL);
-  const [evalSubmitted,      setEvalSubmitted]      = useState(false);
-  const [evalLoading,        setEvalLoading]        = useState(false);
-  const [activeApp,          setActiveApp]          = useState<Application | null>(null);
-  const [remarksBy,          setRemarksBy]          = useState('');
+  const [showEvalModal, setShowEvalModal] = useState(false);
+  const [evalForm, setEvalForm] = useState<EvalForm>(EMPTY_EVAL);
+  const [evalSubmitted, setEvalSubmitted] = useState(false);
+  const [evalLoading, setEvalLoading] = useState(false);
+  const [activeApp, setActiveApp] = useState<Application | null>(null);
+  const [remarksBy, setRemarksBy] = useState('');
 
   // ── Counselling modal ──
-  const [showCounselModal,   setShowCounselModal]   = useState(false);
-  const [counselRemarks,     setCounselRemarks]     = useState('');
-  const [counselSubmitted,   setCounselSubmitted]   = useState(false);
-  const [counselLoading,     setCounselLoading]     = useState(false);
+  const [showCounselModal, setShowCounselModal] = useState(false);
+  const [counselRemarks, setCounselRemarks] = useState('');
+  const [counselSubmitted, setCounselSubmitted] = useState(false);
+  const [counselLoading, setCounselLoading] = useState(false);
 
   // ── Evaluation view modal ──
-  const [showViewEvalModal,  setShowViewEvalModal]  = useState(false);
-  const [viewEvalData,       setViewEvalData]       = useState<any>(null);
-  const [viewEvalLoading,    setViewEvalLoading]    = useState(false);
+  const [showViewEvalModal, setShowViewEvalModal] = useState(false);
+  const [viewEvalData, setViewEvalData] = useState<any>(null);
+  const [viewEvalLoading, setViewEvalLoading] = useState(false);
 
   // ── Remarks view modal ──
-  const [showRemarksModal,   setShowRemarksModal]   = useState(false);
-  const [remarksModalTitle,  setRemarksModalTitle]  = useState('');
-  const [remarksModalText,   setRemarksModalText]   = useState('');
+  const [showRemarksModal, setShowRemarksModal] = useState(false);
+  const [remarksModalTitle, setRemarksModalTitle] = useState('');
+  const [remarksModalText, setRemarksModalText] = useState('');
 
   // ── Toasts ──
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastIdRef = useRef(0);
+
+  // Global filter used by the header search input
+  const [globalFilter, setGlobalFilter] = useState<string>();
 
   // ── Evaluation cache ──
   const evalCacheRef = useRef<Map<string, any>>(new Map());
@@ -246,21 +276,21 @@ export default function DynamicDashboard() {
 
     const enriched = apps.map(app => {
       const authority = String(app.dealingAuthority ?? '').trim();
-      const hodId     = String(app.dealingHODId     ?? '').trim();
-      const howId     = String(app.dealingHow       ?? '').trim();
-      const faculty   = String(app.dealingFaculty   ?? '').trim();
+      const hodId = String(app.dealingHODId ?? '').trim();
+      const howId = String(app.dealingHow ?? '').trim();
+      const faculty = String(app.dealingFaculty ?? '').trim();
 
       // Reset row flags
       app.isDealingAuthority = false;
-      app.isHOD              = false;
-      app.isHoW              = false;
-      app.isdealingFaculty   = false;
+      app.isHOD = false;
+      app.isHoW = false;
+      app.isdealingFaculty = false;
 
       if (empCode) {
-        if      (authority === empCode) { app.isDealingAuthority = true; da  = true; }
-        else if (hodId     === empCode) { app.isHOD              = true; hod = true; }
-        else if (howId     === empCode) { app.isHoW              = true; how = true; }
-        else if (faculty   === empCode) { app.isdealingFaculty   = true; fac = true; }
+        if (authority === empCode) { app.isDealingAuthority = true; da = true; }
+        else if (hodId === empCode) { app.isHOD = true; hod = true; }
+        else if (howId === empCode) { app.isHoW = true; how = true; }
+        else if (faculty === empCode) { app.isdealingFaculty = true; fac = true; }
       }
       return app;
     });
@@ -274,7 +304,7 @@ export default function DynamicDashboard() {
   }
 
   function buildPageTitle(da: boolean, hod: boolean, how: boolean, fac: boolean): string {
-    if (da)  return '** Dealing Authority Dashboard **';
+    if (da) return '** Dealing Authority Dashboard **';
     if (hod) return '** Head of Department Dashboard **';
     if (how) return '** Head of Wing Dashboard **';
     if (fac) return '** Dealing Faculty Dashboard **';
@@ -286,7 +316,7 @@ export default function DynamicDashboard() {
   // ────────────────────────────────────────────────────────────────────────────
 
   const totalPages = Math.max(1, Math.ceil(visibleApplications.length / PAGE_SIZE));
-  const pagedRows  = useMemo(() => {
+  const pagedRows = useMemo(() => {
     const start = (currentPage - 1) * PAGE_SIZE;
     return visibleApplications.slice(start, start + PAGE_SIZE);
   }, [visibleApplications, currentPage]);
@@ -355,7 +385,7 @@ export default function DynamicDashboard() {
     setEvalSubmitted(true);
     if (!activeApp) return;
 
-    const fields = ['academicsMarks','communicationSkillsMarks','attitudeMarks','extraCurricularMarks','knowledgeMarks'] as const;
+    const fields = ['academicsMarks', 'communicationSkillsMarks', 'attitudeMarks', 'extraCurricularMarks', 'knowledgeMarks'] as const;
     const invalid = fields.some(f => {
       const v = Number(evalForm[f]);
       return evalForm[f] === '' || isNaN(v) || v < 0 || v > 100;
@@ -364,13 +394,13 @@ export default function DynamicDashboard() {
 
     setEvalLoading(true);
     const res = await studentEvaluationAddNew({
-      registrationNo:           activeApp.registrationNo,
-      academicsMarks:           Number(evalForm.academicsMarks),
+      registrationNo: activeApp.registrationNo,
+      academicsMarks: Number(evalForm.academicsMarks),
       communicationSkillsMarks: Number(evalForm.communicationSkillsMarks),
-      attitudeMarks:            Number(evalForm.attitudeMarks),
-      extraCurricularMarks:     Number(evalForm.extraCurricularMarks),
-      knowledgeMarks:           Number(evalForm.knowledgeMarks),
-      comments:                 evalForm.comments,
+      attitudeMarks: Number(evalForm.attitudeMarks),
+      extraCurricularMarks: Number(evalForm.extraCurricularMarks),
+      knowledgeMarks: Number(evalForm.knowledgeMarks),
+      comments: evalForm.comments,
       remarksBy,
     });
     setEvalLoading(false);
@@ -449,15 +479,15 @@ export default function DynamicDashboard() {
   const getRemarksFor = (regNo: string) =>
     authorityRemarks.find(r => r.registrationNo === regNo);
 
-  const handleViewFaculty   = (app: Application) => {
+  const handleViewFaculty = (app: Application) => {
     const r = getRemarksFor(app.registrationNo);
     showRemarks('Faculty Remarks', r?.dealingUserInterviewRemarks || r?.facultyRemarks || app.dealingUserInterviewRemarks);
   };
-  const handleViewHOD       = (app: Application) => {
+  const handleViewHOD = (app: Application) => {
     const r = getRemarksFor(app.registrationNo);
     showRemarks('HOD Remarks', r?.hodRemarks || r?.dealingHODRemarks || app.dealingHODRemarks);
   };
-  const handleViewHoW       = (app: Application) => {
+  const handleViewHoW = (app: Application) => {
     const r = getRemarksFor(app.registrationNo);
     showRemarks('Head of Wing Remarks', r?.howRemarks || r?.dealingHowRemarks || '');
   };
@@ -467,15 +497,15 @@ export default function DynamicDashboard() {
   };
 
   // Has-data guards
-  const hasFacultyRemarks   = (app: Application) => {
+  const hasFacultyRemarks = (app: Application) => {
     const r = getRemarksFor(app.registrationNo);
     return !!(r?.facultyRemarks || r?.dealingUserInterviewRemarks || app.dealingUserInterviewRemarks);
   };
-  const hasHODRemarks       = (app: Application) => {
+  const hasHODRemarks = (app: Application) => {
     const r = getRemarksFor(app.registrationNo);
     return !!(r?.hodRemarks || r?.dealingHODRemarks || app.dealingHODRemarks);
   };
-  const hasHoWRemarks       = (app: Application) => {
+  const hasHoWRemarks = (app: Application) => {
     const r = getRemarksFor(app.registrationNo);
     return !!(r?.howRemarks || r?.dealingHowRemarks);
   };
@@ -483,7 +513,7 @@ export default function DynamicDashboard() {
     const r = getRemarksFor(app.registrationNo);
     return !!(r?.ApprovalRemarks || r?.dealingUidRemarks);
   };
-  const hasEvalRemarks      = (app: Application) =>
+  const hasEvalRemarks = (app: Application) =>
     evalCacheRef.current.has(app.registrationNo);
 
   // ────────────────────────────────────────────────────────────────────────────
@@ -501,14 +531,14 @@ export default function DynamicDashboard() {
   // ────────────────────────────────────────────────────────────────────────────
 
   const counselBadge = (status: string) => {
-    if (status === 'True')  return { cls: 'badge-success',  label: 'Done'    };
-    if (status === 'False') return { cls: 'badge-warning',  label: 'Pending' };
-    return                         { cls: 'badge-warning',  label: 'Pending' };
+    if (status === 'True') return { cls: 'badge-success', label: 'Done' };
+    if (status === 'False') return { cls: 'badge-warning', label: 'Pending' };
+    return { cls: 'badge-warning', label: 'Pending' };
   };
   const approvalBadge = (val: string) => {
-    if (val === 'True')  return { cls: 'badge-success', label: 'Approved' };
-    if (val === 'False') return { cls: 'badge-danger',  label: 'Rejected' };
-    return                      { cls: 'badge-warning', label: 'Pending'  };
+    if (val === 'True') return { cls: 'badge-success', label: 'Approved' };
+    if (val === 'False') return { cls: 'badge-danger', label: 'Rejected' };
+    return { cls: 'badge-warning', label: 'Pending' };
   };
 
   // ────────────────────────────────────────────────────────────────────────────
@@ -528,346 +558,355 @@ export default function DynamicDashboard() {
   // Render
   // ────────────────────────────────────────────────────────────────────────────
 
+  const theme = useTheme();
+
+  // Return bg color and text color for a toast type (matches original mapping)
+  function toastBg(type: ToastType) {
+    switch (type) {
+      case 'success':
+        return { background: theme.palette.success?.main ?? '#059669', color: '#fff' };
+      case 'error':
+        return { background: theme.palette.error?.main ?? '#dc2626', color: '#fff' };
+      case 'warning':
+        return { background: theme.palette.warning?.main ?? '#f59e0b', color: '#000' };
+      default:
+        return { background: theme.palette.info?.main ?? '#0ea5e9', color: '#fff' };
+    }
+  }
+
   return (
     <>
-      {/* ── Toasts ── */}
-      <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 9000, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {toasts.map(t => (
-          <div key={t.id} className={`se-toast se-toast-${t.type}`}>
-            <strong>{t.title}</strong>
-            {t.text && <div style={{ fontSize: '0.82rem', marginTop: 2 }}>{t.text}</div>}
-          </div>
-        ))}
+      {/* Toasts (kept simple) */}
+      <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 1200 }}>
+        {toasts.map(t => {
+          const s = toastBg(t.type);
+          return (
+            <div key={t.id} style={{ marginBottom: 8 }}>
+              <Paper elevation={3} style={{ padding: '8px 12px', background: s.background, color: s.color }}>
+                <strong>{t.title}</strong>
+                {t.text && <div style={{ fontSize: 12 }}>{t.text}</div>}
+              </Paper>
+            </div>
+          );
+        })}
       </div>
 
-      {/* ── Loading overlay ── */}
+      {/* Loading overlay */}
       {loading && (
-        <div className="se-loader-backdrop">
-          <div className="se-loader-box">
-            <div className="se-spinner" />
-            <span>Loading…</span>
-          </div>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Paper style={{ padding: 20, display: 'flex', gap: 12, alignItems: 'center' }}>
+            <div className="animate-spin" style={{ width: 32, height: 32, border: '4px solid #e5e7eb', borderTopColor: theme.palette.primary.main, borderRadius: '50%' }} />
+            <Typography variant="body2">Loading…</Typography>
+          </Paper>
         </div>
       )}
 
-      <div className="se-container">
 
-        {/* ── Header cards ── */}
-        <div className="se-header-cards">
-          <div className="se-card">
-            <span className="se-label">Employee Name / UID:</span>
-            <span className="se-value">{employeeName} / {employeeCode}</span>
-          </div>
-          <div className="se-card se-card-center">
-            <span className="se-label-center">{pageTitle}</span>
-          </div>
-          <div className="se-card">
-            <span className="se-label">Department Name:</span>
-            <span className="se-value">{departmentName}</span>
-          </div>
-        </div>
 
-        {/* ── Table ── */}
-        <div className="se-table-wrapper">
-          <table className="se-table">
-            <thead>
-              <tr>
-                <th>App. ID</th>
-                <th>Reg. No.</th>
-                <th>Contact No</th>
-                <th>WhatsApp No</th>
-                <th>Parent Phone</th>
-                <th>Counselling</th>
-                <th>App. Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pagedRows.length === 0 && !loading ? (
-                <tr>
-                  <td colSpan={8} className="se-empty">No applications found.</td>
-                </tr>
-              ) : (
-                pagedRows.map(app => {
+      {/* <Box sx={{ maxWidth: 1200, mx: 'auto', p: 2 }}> */}
+      {/* <Card sx={{ borderRadius: 2, overflow: 'hidden' }}> */}
+      {/* <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)` }}> */}
+      <Box
+        sx={{
+          maxWidth: "Auto",
+          mx: "auto",
+          p: { xs: 1, sm: 2 },
+          width: "100%"
+        }}
+      >
+        <Card
+          sx={{
+            borderRadius: 2,
+            overflow: "hidden",
+            width: "100%"
+          }}
+        >
+          <Box
+            sx={{
+              p: 2,
+              display: "flex",
+              flexDirection: {
+                xs: "column",
+                md: "row"
+              },
+              justifyContent: "space-between",
+              alignItems: {
+                xs: "stretch",
+                md: "center"
+              },
+              gap: 2,
+              background: `linear-gradient(
+      135deg,
+      ${theme.palette.primary.main} 0%,
+      ${theme.palette.primary.dark} 100%
+    )`
+            }}
+          >
+            <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              {/* <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.9)' }}>{employeeName} — {departmentName}</Typography> */}
+            </Box>
+            <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <Typography variant="subtitle1" sx={{ color: '#fff', fontWeight: 700 }}>{pageTitle}</Typography>
+              {/* <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.9)' }}>{employeeName} — {departmentName}</Typography> */}
+            </Box>
+
+            {/* <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}> */}
+            <Box
+              sx={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 1,
+                width: {
+                  xs: "100%",
+                  md: "auto"
+                }
+              }}
+            >
+              <TextField
+                size="small"
+                placeholder="Search..."
+                value={globalFilter}
+                onChange={(e) => setGlobalFilter(e.target.value)}
+                sx={{
+                  width: {
+                    xs: "100%",
+                    sm: 250
+                  },
+                  minWidth: 0,
+
+                  "& .MuiOutlinedInput-root": {
+                    backgroundColor: "rgba(255,255,255,0.08)",
+                    color: "white",
+
+                    "& fieldset": {
+                      borderColor: "rgba(255,255,255,0.2)"
+                    }
+                  }
+                }}
+                // sx={{
+                //   width: 240,
+                //   '& .MuiOutlinedInput-root': {
+                //     backgroundColor: 'rgba(255,255,255,0.08)',
+                //     color: 'white',
+                //     '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
+                //   },
+                // }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ color: 'white', fontSize: 20 }} />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              {/* <FormControl size="small" sx={{ minWidth: 140 }}> */}
+              <FormControl
+                size="small"
+                sx={{
+                  minWidth: {
+                    xs: "100%",
+                    sm: 140
+                  }
+                }}
+              >
+                <Select
+                  value={''}
+                  onChange={() => { }}
+                  displayEmpty
+                  sx={{
+                    color: 'white',
+                    backgroundColor: 'rgba(255,255,255,0.08)',
+                    '.MuiSelect-icon': { color: 'white' },
+                  }}
+                >
+                  <MenuItem value="">All</MenuItem>
+                </Select>
+              </FormControl>
+              <Button
+                variant="contained"
+                sx={{
+                  width: {
+                    xs: "100%",
+                    sm: "auto"
+                  },
+                  background: "rgba(255,255,255,0.12)",
+                  color: "#fff"
+                }}
+              >
+                Export
+              </Button>
+              {/* <Button variant="contained" onClick={() => addToast('info', 'Export requested')} sx={{ background: 'rgba(255,255,255,0.12)', color: '#fff' }}>
+                Export
+              </Button> */}
+            </Box>
+          </Box>
+
+
+          <TableContainer component={Paper} sx={{
+            maxHeight: 560,
+            overflowX: "auto",
+            width: "100%"
+          }}>
+            <Table
+              stickyHeader
+              sx={{
+                minWidth: 1200
+              }}
+            >
+              <TableHead>
+                <TableRow sx={{ backgroundColor: '#f8f9fa' }}>
+                  <TableCell sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 12 }}>App. ID</TableCell>
+                  <TableCell sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 12 }}>Reg. No.</TableCell>
+                  <TableCell sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 12 }}>Contact</TableCell>
+                  <TableCell sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 12 }}>WhatsApp</TableCell>
+                  <TableCell sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 12 }}>Parent</TableCell>
+                  <TableCell sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 12 }}>Counselling</TableCell>
+                  <TableCell sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 12 }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: 12 }}>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {pagedRows.length > 0 ? pagedRows.map((app, idx) => {
                   const counsel = counselBadge(app.counsellingStatus);
                   const approval = approvalBadge(app.isApproved);
                   const isPending = !app.isApproved || app.isApproved === 'null';
-
                   return (
-                    <tr key={app.applicationId}>
-                      <td>{app.applicationId}</td>
-                      <td>{app.registrationNo}</td>
-                      <td>{app.phoneNumber}</td>
-                      <td>{app.whatsAppNo}</td>
-                      <td>{app.parentContact}</td>
-                      <td><span className={`se-badge ${counsel.cls}`}>{counsel.label}</span></td>
-                      <td><span className={`se-badge ${approval.cls}`}>{approval.label}</span></td>
-                      <td>
-                        <div className="se-actions">
+                    <TableRow key={app.applicationId} hover>
+                      <TableCell>{app.applicationId}</TableCell>
+                      <TableCell>{app.registrationNo}</TableCell>
+                      <TableCell>{app.phoneNumber}</TableCell>
+                      <TableCell>{app.whatsAppNo}</TableCell>
+                      <TableCell>{app.parentContact}</TableCell>
+                      <TableCell><Chip label={counsel.label} sx={{ bgcolor: counsel.cls ? undefined : undefined, px: 1 }} /></TableCell>
+                      <TableCell><Chip label={approval.label} color={approval.label === 'Approved' ? 'success' : approval.label === 'Rejected' ? 'error' : 'warning'} size="small" /></TableCell>
+                      <TableCell>
+                        {/* <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}> */}
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 1,
+                            minWidth: 400
+                          }}
+                        >
 
-                          {/* ── isHOD buttons ── */}
                           {app.isHOD && (
                             <>
                               {isPending && (
                                 <>
-                                  <button className="se-btn se-btn-success" onClick={() => handleAccept(app)}>Accept</button>
-                                  <button className="se-btn se-btn-danger"  onClick={() => handleDisapprove(app)}>Reject</button>
+                                  <Button size="small" variant="contained" color="success" onClick={() => handleAccept(app)}>Accept</Button>
+                                  <Button size="small" variant="contained" color="error" onClick={() => handleDisapprove(app)}>Reject</Button>
                                 </>
                               )}
-                              <button className="se-btn se-btn-warning"  onClick={() => handleForward(app, 'How')}>Forward to HoW</button>
-                              <button className="se-btn se-btn-primary"
-                                onClick={() => app.counsellingStatus === 'True' ? handleViewCounselling(app) : handleOpenCounselling(app)}>
+                              <Button size="small" variant="contained" color="warning" onClick={() => handleForward(app, 'How')}>Forward to HoW</Button>
+                              <Button size="small" variant="outlined" onClick={() => app.counsellingStatus === 'True' ? handleViewCounselling(app) : handleOpenCounselling(app)}>
                                 {app.counsellingStatus === 'True' ? 'View Counselling' : 'Submit Counselling'}
-                              </button>
-                              <button className="se-btn se-btn-primary"   onClick={() => handleOpenEval(app, 'HOD')}>Submit Evaluation</button>
-                              <button className="se-btn se-btn-secondary" onClick={() => handleViewEvaluation(app)}  disabled={!hasEvalRemarks(app)}>Evaluation Remarks</button>
-                              <button className="se-btn se-btn-secondary" onClick={() => handleViewFaculty(app)}     disabled={!hasFacultyRemarks(app)}>Faculty Remarks</button>
-                              <button className="se-btn se-btn-secondary" onClick={() => handleViewAuthority(app)}   disabled={!hasAuthorityRemarks(app)}>Authority Remarks</button>
-                              <button className="se-btn se-btn-secondary" onClick={() => handleViewHoW(app)}         disabled={!hasHoWRemarks(app)}>Own Remarks</button>
+                              </Button>
+                              <Button size="small" variant="contained" color="primary" onClick={() => handleOpenEval(app, 'HOD')}>Submit Evaluation</Button>
+                              <Button size="small" variant="outlined" onClick={() => handleViewEvaluation(app)} disabled={!hasEvalRemarks(app)}>Evaluation Remarks</Button>
+                              <Button size="small" variant="outlined" onClick={() => handleViewFaculty(app)} disabled={!hasFacultyRemarks(app)}>Faculty Remarks</Button>
+                              <Button size="small" variant="outlined" onClick={() => handleViewAuthority(app)} disabled={!hasAuthorityRemarks(app)}>Authority Remarks</Button>
+                              <Button size="small" variant="outlined" onClick={() => handleViewHoW(app)} disabled={!hasHoWRemarks(app)}>Own Remarks</Button>
                             </>
                           )}
 
-                          {/* ── isHoW buttons ── */}
+
                           {app.isHoW && (
                             <>
                               {isPending && (
                                 <>
-                                  <button className="se-btn se-btn-success" onClick={() => handleAccept(app)}>Accept</button>
-                                  <button className="se-btn se-btn-danger"  onClick={() => handleDisapprove(app)}>Reject</button>
+                                  <Button size="small" variant="contained" color="success" onClick={() => handleAccept(app)}>Accept</Button>
+                                  <Button size="small" variant="contained" color="error" onClick={() => handleDisapprove(app)}>Reject</Button>
                                 </>
                               )}
-                              <button className="se-btn se-btn-primary"
-                                onClick={() => app.counsellingStatus === 'True' ? handleViewCounselling(app) : handleOpenCounselling(app)}>
+                              <Button size="small" variant="outlined" onClick={() => app.counsellingStatus === 'True' ? handleViewCounselling(app) : handleOpenCounselling(app)}>
                                 {app.counsellingStatus === 'True' ? 'View Counselling' : 'Submit Counselling'}
-                              </button>
-                              <button className="se-btn se-btn-primary"   onClick={() => handleOpenEval(app, 'HOW')}>Submit Evaluation</button>
-                              <button className="se-btn se-btn-secondary" onClick={() => handleViewEvaluation(app)}  disabled={!hasEvalRemarks(app)}>Evaluation Remarks</button>
-                              <button className="se-btn se-btn-secondary" onClick={() => handleViewFaculty(app)}     disabled={!hasFacultyRemarks(app)}>Faculty Remarks</button>
-                              <button className="se-btn se-btn-secondary" onClick={() => handleViewAuthority(app)}   disabled={!hasAuthorityRemarks(app)}>Authority Remarks</button>
-                              <button className="se-btn se-btn-secondary" onClick={() => handleViewHOD(app)}         disabled={!hasHODRemarks(app)}>HOD Remarks</button>
-                              <button className="se-btn se-btn-secondary" onClick={() => handleViewHoW(app)}>Own Remarks</button>
+                              </Button>
+                              <Button size="small" variant="contained" color="primary" onClick={() => handleOpenEval(app, 'HOW')}>Submit Evaluation</Button>
+                              <Button size="small" variant="outlined" onClick={() => handleViewEvaluation(app)} disabled={!hasEvalRemarks(app)}>Evaluation Remarks</Button>
+                              <Button size="small" variant="outlined" onClick={() => handleViewFaculty(app)} disabled={!hasFacultyRemarks(app)}>Faculty Remarks</Button>
+                              <Button size="small" variant="outlined" onClick={() => handleViewAuthority(app)} disabled={!hasAuthorityRemarks(app)}>Authority Remarks</Button>
+                              <Button size="small" variant="outlined" onClick={() => handleViewHOD(app)} disabled={!hasHODRemarks(app)}>HOD Remarks</Button>
+                              <Button size="small" variant="outlined" onClick={() => handleViewHoW(app)}>Own Remarks</Button>
                             </>
                           )}
 
-                          {/* ── isDealingAuthority buttons ── */}
+
                           {app.isDealingAuthority && (
                             <>
-                              <button className="se-btn se-btn-warning" onClick={() => handleForward(app, 'Hod')}>Forward to HoD</button>
-                              <button className="se-btn se-btn-primary" onClick={() => handleOpenEval(app, 'HOD')}>Submit Evaluation</button>
-                              <button className="se-btn se-btn-info"    onClick={() => handleViewEvaluation(app)}>View Evaluation</button>
-                              <button className="se-btn se-btn-success" onClick={() => handleAccept(app)}>Accept</button>
-                              <button className="se-btn se-btn-danger"  onClick={() => handleDisapprove(app)}>Reject</button>
-                              <button className="se-btn se-btn-info"    onClick={() => handleViewFaculty(app)}     disabled={!hasFacultyRemarks(app)}>View Faculty Remarks</button>
-                              <button className="se-btn se-btn-info"    onClick={() => handleViewHOD(app)}         disabled={!hasHODRemarks(app)}>View HOD Remarks</button>
-                              <button className="se-btn se-btn-info"    onClick={() => handleViewHoW(app)}         disabled={!hasHoWRemarks(app)}>View HoW Remarks</button>
-                              <button className="se-btn se-btn-info"    onClick={() => handleViewAuthority(app)}   disabled={!hasAuthorityRemarks(app)}>View Authority Remarks</button>
+                              <Button size="small" variant="contained" color="warning" onClick={() => handleForward(app, 'Hod')}>Forward to HoD</Button>
+                              <Button size="small" variant="contained" color="primary" onClick={() => handleOpenEval(app, 'HOD')}>Submit Evaluation</Button>
+                              <Button size="small" variant="outlined" color="info" onClick={() => handleViewEvaluation(app)}>View Evaluation</Button>
+                              <Button size="small" variant="contained" color="success" onClick={() => handleAccept(app)}>Accept</Button>
+                              <Button size="small" variant="contained" color="error" onClick={() => handleDisapprove(app)}>Reject</Button>
+                              <Button size="small" variant="outlined" color="info" onClick={() => handleViewFaculty(app)} disabled={!hasFacultyRemarks(app)}>View Faculty Remarks</Button>
+                              <Button size="small" variant="outlined" color="info" onClick={() => handleViewHOD(app)} disabled={!hasHODRemarks(app)}>View HOD Remarks</Button>
+                              <Button size="small" variant="outlined" color="info" onClick={() => handleViewHoW(app)} disabled={!hasHoWRemarks(app)}>View HoW Remarks</Button>
+                              <Button size="small" variant="outlined" color="info" onClick={() => handleViewAuthority(app)} disabled={!hasAuthorityRemarks(app)}>View Authority Remarks</Button>
                             </>
                           )}
 
-                          {/* ── isdealingFaculty buttons ── */}
+
                           {app.isdealingFaculty && (
                             <>
-                              <button className="se-btn se-btn-warning" onClick={() => handleForward(app, 'Hod')}>Forward to HoD</button>
-                              <button className="se-btn se-btn-primary"
-                                onClick={() => app.counsellingStatus === 'True' ? handleViewCounselling(app) : handleOpenCounselling(app)}>
+                              <Button size="small" variant="contained" color="warning" onClick={() => handleForward(app, 'Hod')}>Forward to HoD</Button>
+                              <Button size="small" variant="outlined" onClick={() => app.counsellingStatus === 'True' ? handleViewCounselling(app) : handleOpenCounselling(app)}>
                                 {app.counsellingStatus === 'True' ? 'View Counselling' : 'Submit Counselling'}
-                              </button>
-                              <button className="se-btn se-btn-primary" onClick={() => handleOpenEval(app, 'Faculty')}>Submit Evaluation</button>
+                              </Button>
+                              <Button size="small" variant="contained" color="primary" onClick={() => handleOpenEval(app, 'Faculty')}>Submit Evaluation</Button>
                             </>
                           )}
 
-                        </div>
-                      </td>
-                    </tr>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
                   );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                }) : (
+                  <TableRow>
+                    <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                        <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center text-3xl">📋</div>
+                        <Typography>No applications found</Typography>
+                        <Typography variant="caption" color="text.secondary">Adjust filters or refresh to load records.</Typography>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
 
-        {/* ── Pagination ── */}
-        {visibleApplications.length > PAGE_SIZE && (
-          <div className="se-pagination">
-            <button className="se-page-btn" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>‹ Prev</button>
-            <span>Page {currentPage} of {totalPages} ({visibleApplications.length} total)</span>
-            <button className="se-page-btn" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Next ›</button>
-          </div>
-        )}
-      </div>
 
-      {/* ═══════════════════════════════════════════════════════════════════════
-          Evaluation Modal
-      ════════════════════════════════════════════════════════════════════════ */}
-      {showEvalModal && activeApp && (
-        <div className="se-modal-backdrop" role="dialog" aria-modal>
-          <div className="se-modal">
-            <div className="se-modal-header">
-              <h5>Evaluation Form</h5>
-              <button className="se-modal-close" onClick={() => setShowEvalModal(false)}>&times;</button>
-            </div>
-            <div className="se-modal-body">
-              <form onSubmit={handleEvalSubmit} noValidate>
-
-                {/* Identifiers */}
-                <div className="se-form-row">
-                  <div className="se-form-group">
-                    <label>Application ID</label>
-                    <input className="se-input" value={activeApp.applicationId} disabled />
-                  </div>
-                  <div className="se-form-group">
-                    <label>Registration Number</label>
-                    <input className="se-input" value={activeApp.registrationNo} disabled />
-                  </div>
-                </div>
-
-                {/* Marks fields */}
-                {(
-                  [
-                    { label: 'Academics Marks',                   field: 'academicsMarks'           },
-                    { label: 'Communication Skills Marks',        field: 'communicationSkillsMarks' },
-                    { label: 'Attitude Marks',                    field: 'attitudeMarks'             },
-                    { label: 'Extra-Curricular Activities Marks', field: 'extraCurricularMarks'     },
-                    { label: 'Knowledge Marks',                   field: 'knowledgeMarks'            },
-                  ] as { label: string; field: keyof EvalForm }[]
-                ).map(({ label, field }) => (
-                  <div className="se-form-row" key={field}>
-                    <div className="se-form-group">
-                      <label>{label}</label>
-                      <input
-                        className={`se-input${marksError(field) ? ' se-input-invalid' : ''}`}
-                        type="number" min={0} max={100}
-                        value={evalForm[field]}
-                        onChange={e => setEvalForm(prev => ({ ...prev, [field]: e.target.value }))}
-                      />
-                      {marksError(field) && (
-                        <span className="se-error-text">Please enter a valid {label} (0–100).</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-
-                {/* Comments */}
-                <div className="se-form-row">
-                  <div className="se-form-group" style={{ flex: '1 1 100%' }}>
-                    <label>Comments</label>
-                    <textarea
-                      className="se-input"
-                      rows={3}
-                      value={evalForm.comments}
-                      onChange={e => setEvalForm(prev => ({ ...prev, comments: e.target.value }))}
-                    />
-                  </div>
-                </div>
-
-                <div className="se-modal-footer">
-                  <button type="button" className="se-btn se-btn-secondary" onClick={() => setShowEvalModal(false)}>Cancel</button>
-                  <button type="submit" className="se-btn se-btn-success" disabled={evalLoading}>
-                    {evalLoading ? 'Submitting…' : 'Submit Evaluation'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════════════════════════
-          Counselling Remarks Modal
-      ════════════════════════════════════════════════════════════════════════ */}
-      {showCounselModal && activeApp && (
-        <div className="se-modal-backdrop" role="dialog" aria-modal>
-          <div className="se-modal" style={{ maxWidth: 520 }}>
-            <div className="se-modal-header">
-              <h5>Counselling Remarks</h5>
-              <button className="se-modal-close" onClick={() => setShowCounselModal(false)}>&times;</button>
-            </div>
-            <div className="se-modal-body">
-              <form onSubmit={handleCounselSubmit} noValidate>
-                <div className="se-form-group">
-                  <label>Your Remarks <span style={{ color: '#dc3545' }}>*</span></label>
-                  <textarea
-                    className={`se-input${counselSubmitted && !counselRemarks.trim() ? ' se-input-invalid' : ''}`}
-                    rows={5}
-                    value={counselRemarks}
-                    onChange={e => setCounselRemarks(e.target.value)}
-                  />
-                  {counselSubmitted && !counselRemarks.trim() && (
-                    <span className="se-error-text">Counselling remarks are required.</span>
-                  )}
-                </div>
-                <div className="se-modal-footer">
-                  <button type="button" className="se-btn se-btn-secondary" onClick={() => setShowCounselModal(false)}>Cancel</button>
-                  <button type="submit" className="se-btn se-btn-success" disabled={counselLoading}>
-                    {counselLoading ? 'Saving…' : 'Submit Remarks'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════════════════════════
-          View Evaluation Modal
-      ════════════════════════════════════════════════════════════════════════ */}
-      {showViewEvalModal && (
-        <div className="se-modal-backdrop" role="dialog" aria-modal>
-          <div className="se-modal" style={{ maxWidth: 560 }}>
-            <div className="se-modal-header">
-              <h5>Evaluation Details</h5>
-              <button className="se-modal-close" onClick={() => setShowViewEvalModal(false)}>&times;</button>
-            </div>
-            <div className="se-modal-body">
-              {viewEvalLoading ? (
-                <p style={{ textAlign: 'center', padding: 24 }}>Loading…</p>
-              ) : viewEvalData ? (
-                <table className="se-table" style={{ fontSize: '0.875rem' }}>
-                  <tbody>
-                    {[
-                      ['Academics Marks',           viewEvalData.academicsMarks],
-                      ['Communication Skills Marks',viewEvalData.communicationSkillsMarks],
-                      ['Attitude Marks',            viewEvalData.attitudeMarks],
-                      ['Extra-Curricular Marks',    viewEvalData.extraCurricularMarks],
-                      ['Knowledge Marks',           viewEvalData.knowledgeMarks],
-                      ['Total Marks',               viewEvalData.totalMarks],
-                      ['Comments',                  viewEvalData.comments || '—'],
-                      ['Remarks By',                viewEvalData.remarksBy || '—'],
-                    ].map(([k, v]) => (
-                      <tr key={k}><td style={{ fontWeight: 600, paddingRight: 16 }}>{k}</td><td>{v ?? 'N/A'}</td></tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <p style={{ color: '#6c757d', textAlign: 'center', padding: 24 }}>No evaluation data available.</p>
-              )}
-            </div>
-            <div className="se-modal-footer">
-              <button className="se-btn se-btn-secondary" onClick={() => setShowViewEvalModal(false)}>Close</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════════════════════════
-          Generic Remarks View Modal
-      ════════════════════════════════════════════════════════════════════════ */}
-      {showRemarksModal && (
-        <div className="se-modal-backdrop" role="dialog" aria-modal>
-          <div className="se-modal" style={{ maxWidth: 480 }}>
-            <div className="se-modal-header">
-              <h5>{remarksModalTitle}</h5>
-              <button className="se-modal-close" onClick={() => setShowRemarksModal(false)}>&times;</button>
-            </div>
-            <div className="se-modal-body">
-              <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{remarksModalText}</p>
-            </div>
-            <div className="se-modal-footer">
-              <button className="se-btn se-btn-secondary" onClick={() => setShowRemarksModal(false)}>Close</button>
-            </div>
-          </div>
-        </div>
-      )}
+          {/* <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, borderTop: '1px solid #e0e0e0' }}> */}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: {
+                xs: "column",
+                md: "row"
+              },
+              gap: 2,
+              justifyContent: "space-between",
+              alignItems: {
+                xs: "stretch",
+                md: "center"
+              },
+              p: 2,
+              borderTop: "1px solid #e0e0e0"
+            }}
+          >
+            <Typography variant="body2" color="text.secondary">Showing {Math.min(pagedRows.length, PAGE_SIZE)} of {visibleApplications.length} records</Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button size="small" variant="outlined" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>First</Button>
+              <Button size="small" variant="outlined" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Prev</Button>
+              <Typography sx={{ display: 'flex', alignItems: 'center', px: 1 }}>Page {currentPage} of {totalPages}</Typography>
+              <Button size="small" variant="outlined" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Next</Button>
+              <Button size="small" variant="outlined" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>Last</Button>
+            </Box>
+          </Box>
+        </Card>
+      </Box>
     </>
   );
 }

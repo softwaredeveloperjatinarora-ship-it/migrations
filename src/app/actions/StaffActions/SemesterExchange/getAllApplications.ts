@@ -21,8 +21,8 @@ export async function getAllApplications() {
   });
 
   try {
-    const TOKEN = process.env.TOKEN;
-    // const TOKEN = session?.user?.token;
+    // const TOKEN = process.env.TOKEN;
+    const TOKEN = session?.user?.token;
     
     const response = await axios.get(
       `${urls.basewebapiurl}/SemesterExchangeStudentBridge/AllSemesterExchangeApplication`,
