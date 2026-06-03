@@ -30,7 +30,7 @@ export async function sendApproveRequest(
 
   const agent = new https.Agent({ rejectUnauthorized: false });
  const token = session?.user?.token;
- const TOKEN = process.env.TOKEN;
+//  const TOKEN = process.env.TOKEN;
   const formData = new FormData();
   formData.append('RegistrationNo', registrationNo);
   formData.append('Action', action);

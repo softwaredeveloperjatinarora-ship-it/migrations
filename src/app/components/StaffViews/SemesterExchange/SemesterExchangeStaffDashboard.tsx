@@ -707,12 +707,12 @@ const SemesterExchangeStaffDashboard = () => {
                             {/* ── HOD ── */}
                             {row.isHOD && (
                               <>
-                                {/* {isPending(row.isApproved) && (
-                                  <> */}
+                                {isPending(row.isApproved) && (
+                                  <>
                                     <ActionBtn color="success" onClick={() => openAcceptDialog(row)}>Accept</ActionBtn>
                                     <ActionBtn color="error" onClick={() => openRejectDialog(row)}>Reject</ActionBtn>
-                                  {/* </>
-                                )} */}
+                                  </>
+                                )}
                                 <ActionBtn color="warning" onClick={() => openForwardDialog(row, "How")}>Forward to HOW</ActionBtn>
                                 <ActionBtn color="primary" onClick={() =>
                                   row.counsellingStatus === "True" ? viewCounsellingRemarks(row) : openCounselDialog(row)
@@ -731,12 +731,12 @@ const SemesterExchangeStaffDashboard = () => {
                             {/* ── HoW ── */}
                             {row.isHoW && (
                               <>
-                                {/* {isPending(row.isApproved) && (
-                                  <> */}
+                                {isPending(row.isApproved) && (
+                                  <>
                                     <ActionBtn color="success" onClick={() => openAcceptDialog(row)}>Accept</ActionBtn>
                                     <ActionBtn color="error" onClick={() => openRejectDialog(row)}>Reject</ActionBtn>
-                                  {/* </>
-                                )} */}
+                                  </>
+                                )}
                                 <ActionBtn color="primary" onClick={() =>
                                   row.counsellingStatus === "True" ? viewCounsellingRemarks(row) : openCounselDialog(row)
                                 }>
@@ -755,12 +755,12 @@ const SemesterExchangeStaffDashboard = () => {
                             {/* ── Dealing Authority ── */}
                             {row.isDealingAuthority && (
                               <>
-                                {/* {isPending(row.isApproved) && (
-                                  <> */}
+                                {isPending(row.isApproved) && (
+                                  <>
                                     <ActionBtn color="success" onClick={() => openAcceptDialog(row)}>Accept</ActionBtn>
                                     <ActionBtn color="error" onClick={() => openRejectDialog(row)}>Reject</ActionBtn>
-                                  {/* </>
-                                )} */}
+                                  </>
+                                )}
                                 <ActionBtn color="warning" onClick={() => openForwardDialog(row, "Faculty")}>Forward to Faculty</ActionBtn>
                                 <ActionBtn color="warning" onClick={() => openForwardDialog(row, "Hod")}>Forward to HOD</ActionBtn>
                                 <ActionBtn color="primary" onClick={() =>

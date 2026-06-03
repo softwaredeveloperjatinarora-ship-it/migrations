@@ -24,7 +24,7 @@ export async function studentEvaluationAddNew(payload: EvaluationPayload) {
   }
 
   const agent = new https.Agent({ rejectUnauthorized: false });
- const TOKEN = process.env.TOKEN;
+//  const TOKEN = process.env.TOKEN;
   const totalMarks =
     payload.academicsMarks +
     payload.communicationSkillsMarks +

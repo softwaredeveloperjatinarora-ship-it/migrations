@@ -334,7 +334,7 @@ export default function DynamicDashboard() {
   const handleAccept = useCallback(async (app: Application) => {
     if (!confirm('Accept this application?')) return;
     setLoading(true);
-    const res = await sendApproveRequest(app.registrationNo, 'Approve');
+    const res = await sendApproveRequest(app.registrationNo, 'Accept');
     setLoading(false);
     if (res.status === 'success' && res.ApiData?.item1?.[0]?.msg === 'Approved') {
       addToast('success', 'Application accepted successfully!');

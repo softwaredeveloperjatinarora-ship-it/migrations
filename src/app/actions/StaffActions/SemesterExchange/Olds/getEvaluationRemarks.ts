@@ -17,7 +17,7 @@ import { authOptions } from '@/utils/authOptions';
 export async function getEvaluationRemarks(registrationNo: string) {
   const session = await getServerSession(authOptions);
   const token = session?.user?.token;
-   const TOKEN = process.env.TOKEN;
+  //  const TOKEN = process.env.TOKEN;
   const agent = new https.Agent({ rejectUnauthorized: false });
 
   try {

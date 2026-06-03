@@ -30,7 +30,7 @@ export async function sendForwardRequest(
 
   const agent = new https.Agent({ rejectUnauthorized: false });
   
- const TOKEN = process.env.TOKEN;
+//  const TOKEN = process.env.TOKEN;
   const formData = new FormData();
   formData.append('RegistrationNo', registrationNo);
   formData.append('HODUID', targetUID);       // API param name kept as-is

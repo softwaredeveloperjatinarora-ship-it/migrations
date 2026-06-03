@@ -18,7 +18,7 @@ export async function updateCounsellingRemarks(
   }
 
   const agent = new https.Agent({ rejectUnauthorized: false });
-   const TOKEN = process.env.TOKEN;
+  //  const TOKEN = process.env.TOKEN;
   const formData = new FormData();
   formData.append('RegistrationNo',     registrationNo);
   formData.append('ApplicationId',      applicationId);

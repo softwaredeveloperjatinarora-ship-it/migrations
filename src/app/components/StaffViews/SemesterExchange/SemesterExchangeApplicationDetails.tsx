@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Grid from "@mui/material/Grid";
 import {
   Alert,
   Box,
@@ -10,7 +11,7 @@ import {
   CardContent,
   CircularProgress,
   Divider,
-  Grid,
+  Paper,
   Stack,
   Typography,
 } from "@mui/material";
@@ -213,7 +214,6 @@ const SemesterExchangeApplicationDetails = ({ registrationNo }: Props) => {
 
       const appArr = Array.isArray(appRaw) ? (appRaw as StudentApplication[]) : [];
       if (appArr.length === 0) { setError("No application data found for this registration number."); return; }
-
       setApplication(appArr[0]);
       document.title = `Application Details — ${registrationNo}`;
 
@@ -278,7 +278,7 @@ const SemesterExchangeApplicationDetails = ({ registrationNo }: Props) => {
 
   return (
     <>
-      <Breadcrumb title="Application Details" items={BCrumb} titleIcon="mdi:file-account-outline" />
+      {/* <Breadcrumb title="Application Details" items={BCrumb} titleIcon="mdi:file-account-outline" /> */}
 
       <ChildCard>
         {/* Action buttons */}
@@ -306,29 +306,29 @@ const SemesterExchangeApplicationDetails = ({ registrationNo }: Props) => {
             <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "flex-start" }} spacing={2}>
               {/* Student info */}
               <Grid container spacing={1} sx={{ flex: 1 }}>
-                <Grid item xs={6} sm={3}><Typography variant="body2" color="error" fontWeight={700}>Student Name:</Typography></Grid>
-                <Grid item xs={6} sm={3}><Typography variant="body2" fontWeight={700}>{studentWithImage?.studentName ?? "—"}</Typography></Grid>
-                <Grid item xs={6} sm={3}><Typography variant="body2" color="error" fontWeight={700}>Batch Year:</Typography></Grid>
-                <Grid item xs={6} sm={3}><Typography variant="body2" fontWeight={700}>{studentWithImage?.batchYear ?? "—"}</Typography></Grid>
+                <Grid size={{ xs: 6, sm: 3 }}><Typography variant="body2" color="error" fontWeight={700}>Student Name:</Typography></Grid>
+                <Grid size={{ xs: 6, sm: 3 }}><Typography variant="body2" fontWeight={700}>{studentWithImage?.studentName ?? "—"}</Typography></Grid>
+                <Grid size={{ xs: 6, sm: 3 }}><Typography variant="body2" color="error" fontWeight={700}>Batch Year:</Typography></Grid>
+                <Grid size={{ xs: 6, sm: 3 }}><Typography variant="body2" fontWeight={700}>{studentWithImage?.batchYear ?? "—"}</Typography></Grid>
 
-                <Grid item xs={6} sm={3}><Typography variant="body2" color="error" fontWeight={700}>Course:</Typography></Grid>
-                <Grid item xs={6} sm={3}><Typography variant="body2" fontWeight={700}>{studentWithImage?.courseName ?? "—"}</Typography></Grid>
-                <Grid item xs={6} sm={3}><Typography variant="body2" color="error" fontWeight={700}>Program Code : Section:</Typography></Grid>
-                <Grid item xs={6} sm={3}>
+                <Grid size={{ xs: 6, sm: 3 }}><Typography variant="body2" color="error" fontWeight={700}>Course:</Typography></Grid>
+                <Grid size={{ xs: 6, sm: 3 }}><Typography variant="body2" fontWeight={700}>{studentWithImage?.courseName ?? "—"}</Typography></Grid>
+                <Grid size={{ xs: 6, sm: 3 }}><Typography variant="body2" color="error" fontWeight={700}>Program Code : Section:</Typography></Grid>
+                <Grid size={{ xs: 6, sm: 3 }}>
                   <Typography variant="body2" fontWeight={700}>
                     {programCode || studentWithImage?.programCode || "—"} : {sectionCode || "—"}
                   </Typography>
                 </Grid>
 
-                <Grid item xs={6} sm={3}><Typography variant="body2" color="error" fontWeight={700}>University Option 1:</Typography></Grid>
-                <Grid item xs={6} sm={3}><Typography variant="body2" fontWeight={700}>{application.universityOption1 || "—"}</Typography></Grid>
-                <Grid item xs={6} sm={3}><Typography variant="body2" color="error" fontWeight={700}>University Option 2:</Typography></Grid>
-                <Grid item xs={6} sm={3}><Typography variant="body2" fontWeight={700}>{application.universityOption2 || "—"}</Typography></Grid>
+                <Grid size={{ xs: 6, sm: 3 }}><Typography variant="body2" color="error" fontWeight={700}>University Option 1:</Typography></Grid>
+                <Grid size={{ xs: 6, sm: 3 }}><Typography variant="body2" fontWeight={700}>{application.universityOption1 || "—"}</Typography></Grid>
+                <Grid size={{ xs: 6, sm: 3 }}><Typography variant="body2" color="error" fontWeight={700}>University Option 2:</Typography></Grid>
+                <Grid size={{ xs: 6, sm: 3 }}><Typography variant="body2" fontWeight={700}>{application.universityOption2 || "—"}</Typography></Grid>
 
                 {gradeFCount > 0 && (
                   <>
-                    <Grid item xs={6} sm={3}><Typography variant="body2" color="error" fontWeight={700}>Grade F / Low Grade Count:</Typography></Grid>
-                    <Grid item xs={6} sm={3}><Typography variant="body2" color="error" fontWeight={700}>{gradeFCount}</Typography></Grid>
+                    <Grid size={{ xs: 6, sm: 3 }}><Typography variant="body2" color="error" fontWeight={700}>Grade F / Low Grade Count:</Typography></Grid>
+                    <Grid size={{ xs: 6, sm: 3 }}><Typography variant="body2" color="error" fontWeight={700}>{gradeFCount}</Typography></Grid>
                   </>
                 )}
               </Grid>
@@ -359,9 +359,9 @@ const SemesterExchangeApplicationDetails = ({ registrationNo }: Props) => {
             <Divider sx={{ mb: 2 }} />
             <Grid container spacing={2}>
               {section.keys.map((key) => (
-                <Grid item xs={12} sm={6} md={4} key={key}>
+                <Grid  size={{ xs: 12, sm: 6, md:4 }} key={key}>
                   <Typography variant="body2" fontWeight={600} mb={0.5}>
-                    {key === "acceptPolicy" ? "Declaration Statement" : beautifyLabel(key)}
+                    {key === "acceptPolicy" ? "Declaration Statement" : beautifyLabel(String(key))}
                   </Typography>
                   <Box
                     sx={{
@@ -389,7 +389,7 @@ const SemesterExchangeApplicationDetails = ({ registrationNo }: Props) => {
             {DOCUMENT_UPLOADS.map((doc) => {
               const fileName = application[doc.key] as string | undefined;
               return (
-                <Grid item xs={12} sm={6} md={4} key={doc.key}>
+                <Grid  size={{ xs: 12, sm: 6, md:4 }} key={doc.key}>
                   <Typography variant="body2" fontWeight={600} mb={0.5}>{doc.label}</Typography>
                   {fileName && fileName.length > 0 ? (
                     <Button
