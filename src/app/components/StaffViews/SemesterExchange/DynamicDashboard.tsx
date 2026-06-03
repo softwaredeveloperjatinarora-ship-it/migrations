@@ -22,6 +22,11 @@ import {
   MenuItem,
   Button,
   Paper,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  CircularProgress,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import {
@@ -189,7 +194,7 @@ export default function DynamicDashboard() {
     try {
       // Employee - normalize result shape
       const empResult = await getEmployeeDetails();
-      console.log('[loadDashboard] getEmployeeDetails ->', empResult);
+      // console.log('[loadDashboard] getEmployeeDetails ->', empResult);
 
       let emp: any = null;
       if (Array.isArray(empResult)) {
@@ -214,7 +219,7 @@ export default function DynamicDashboard() {
 
       // Applications - normalize result shape
       const appResult = await getAllApplications();
-      console.log('[loadDashboard] getAllApplications ->', appResult);
+      // console.log('[loadDashboard] getAllApplications ->', appResult);
 
       let appsArr: any[] = [];
       if (Array.isArray(appResult)) {
@@ -329,7 +334,7 @@ export default function DynamicDashboard() {
   const handleAccept = useCallback(async (app: Application) => {
     if (!confirm('Accept this application?')) return;
     setLoading(true);
-    const res = await sendApproveRequest(app.registrationNo, 'Accept');
+    const res = await sendApproveRequest(app.registrationNo, 'Approve');
     setLoading(false);
     if (res.status === 'success' && res.ApiData?.item1?.[0]?.msg === 'Approved') {
       addToast('success', 'Application accepted successfully!');
@@ -453,6 +458,7 @@ export default function DynamicDashboard() {
 
   // View counselling remarks (read-only open)
   const handleViewCounselling = useCallback((app: Application) => {
+    console.log(app);
     showRemarks('Counselling Remarks', app.counsellingRemarks);
   }, [showRemarks]);
 
@@ -513,8 +519,44 @@ export default function DynamicDashboard() {
     const r = getRemarksFor(app.registrationNo);
     return !!(r?.ApprovalRemarks || r?.dealingUidRemarks);
   };
-  const hasEvalRemarks = (app: Application) =>
-    evalCacheRef.current.has(app.registrationNo);
+  const hasEvalRemarks = (app: Application) => {
+    // Enable the "View Evaluation" button for all rows.
+    // Actual data is fetched on click by handleViewEvaluation().
+    return true;
+  };
+
+  // Export visibleApplications to CSV (Excel-friendly)
+  const exportVisibleToCsv = useCallback(() => {
+    if (!visibleApplications || visibleApplications.length === 0) {
+      addToast('info', 'No records to export');
+      return;
+    }
+    const headers = ['Application ID','Registration No','Phone','WhatsApp','Parent','Counselling Status','Approval Status'];
+    const rows = visibleApplications.map(r => ([
+      r.applicationId ?? '',
+      r.registrationNo ?? '',
+      r.phoneNumber ?? '',
+      r.whatsAppNo ?? '',
+      r.parentContact ?? '',
+      r.counsellingStatus ?? '',
+      r.isApproved ?? '',
+    ]));
+
+    const csv = [headers, ...rows]
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\r\n');
+
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }); // BOM helps Excel detect UTF-8
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `applications_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    addToast('success', 'Export started');
+  }, [visibleApplications, addToast]);
 
   // ────────────────────────────────────────────────────────────────────────────
   // Form validation helper
@@ -733,6 +775,7 @@ export default function DynamicDashboard() {
                   background: "rgba(255,255,255,0.12)",
                   color: "#fff"
                 }}
+                onClick={exportVisibleToCsv}
               >
                 Export
               </Button>
@@ -770,7 +813,7 @@ export default function DynamicDashboard() {
                 {pagedRows.length > 0 ? pagedRows.map((app, idx) => {
                   const counsel = counselBadge(app.counsellingStatus);
                   const approval = approvalBadge(app.isApproved);
-                  const isPending = !app.isApproved || app.isApproved === 'null';
+                  const isPending = app.isApproved === 'null';
                   return (
                     <TableRow key={app.applicationId} hover>
                       <TableCell>{app.applicationId}</TableCell>
@@ -795,8 +838,9 @@ export default function DynamicDashboard() {
                             <>
                               {isPending && (
                                 <>
-                                  <Button size="small" variant="contained" color="success" onClick={() => handleAccept(app)}>Accept</Button>
+                                  <Button size="small" variant="contained" color="success" onClick={() => handleAccept(app)}>Accept</Button> 
                                   <Button size="small" variant="contained" color="error" onClick={() => handleDisapprove(app)}>Reject</Button>
+                                 
                                 </>
                               )}
                               <Button size="small" variant="contained" color="warning" onClick={() => handleForward(app, 'How')}>Forward to HoW</Button>
@@ -838,8 +882,12 @@ export default function DynamicDashboard() {
                               <Button size="small" variant="contained" color="warning" onClick={() => handleForward(app, 'Hod')}>Forward to HoD</Button>
                               <Button size="small" variant="contained" color="primary" onClick={() => handleOpenEval(app, 'HOD')}>Submit Evaluation</Button>
                               <Button size="small" variant="outlined" color="info" onClick={() => handleViewEvaluation(app)}>View Evaluation</Button>
-                              <Button size="small" variant="contained" color="success" onClick={() => handleAccept(app)}>Accept</Button>
-                              <Button size="small" variant="contained" color="error" onClick={() => handleDisapprove(app)}>Reject</Button>
+                               {isPending && (
+                                <>
+                              <Button size="small" variant="contained" color="success" onClick={() => handleAccept(app)} >Accept</Button>
+                              <Button size="small" variant="contained" color="error" onClick={() => handleDisapprove(app)}>Reject</Button> 
+                             </>
+                               )}
                               <Button size="small" variant="outlined" color="info" onClick={() => handleViewFaculty(app)} disabled={!hasFacultyRemarks(app)}>View Faculty Remarks</Button>
                               <Button size="small" variant="outlined" color="info" onClick={() => handleViewHOD(app)} disabled={!hasHODRemarks(app)}>View HOD Remarks</Button>
                               <Button size="small" variant="outlined" color="info" onClick={() => handleViewHoW(app)} disabled={!hasHoWRemarks(app)}>View HoW Remarks</Button>
@@ -877,6 +925,95 @@ export default function DynamicDashboard() {
             </Table>
           </TableContainer>
 
+          {/* Submit Evaluation Dialog */}
+          <Dialog
+            open={showEvalModal}
+            onClose={() => setShowEvalModal(false)}
+            maxWidth="sm"
+            fullWidth
+          >
+            <DialogTitle>
+              Submit Evaluation{activeApp ? ` — ${activeApp.registrationNo}` : ''}
+            </DialogTitle>
+            <form onSubmit={handleEvalSubmit}>
+              <DialogContent dividers>
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                  <TextField
+                    label="Academics (0-100)"
+                    type="number"
+                    inputProps={{ min: 0, max: 100 }}
+                    value={evalForm.academicsMarks}
+                    onChange={(e) => setEvalForm(f => ({ ...f, academicsMarks: e.target.value }))}
+                    error={marksError('academicsMarks')}
+                    helperText={marksError('academicsMarks') ? 'Enter 0-100' : ''}
+                    size="small"
+                    fullWidth
+                  />
+                  <TextField
+                    label="Communication (0-100)"
+                    type="number"
+                    inputProps={{ min: 0, max: 100 }}
+                    value={evalForm.communicationSkillsMarks}
+                    onChange={(e) => setEvalForm(f => ({ ...f, communicationSkillsMarks: e.target.value }))}
+                    error={marksError('communicationSkillsMarks')}
+                    helperText={marksError('communicationSkillsMarks') ? 'Enter 0-100' : ''}
+                    size="small"
+                    fullWidth
+                  />
+                  <TextField
+                    label="Attitude (0-100)"
+                    type="number"
+                    inputProps={{ min: 0, max: 100 }}
+                    value={evalForm.attitudeMarks}
+                    onChange={(e) => setEvalForm(f => ({ ...f, attitudeMarks: e.target.value }))}
+                    error={marksError('attitudeMarks')}
+                    helperText={marksError('attitudeMarks') ? 'Enter 0-100' : ''}
+                    size="small"
+                    fullWidth
+                  />
+                  <TextField
+                    label="Extra Curricular (0-100)"
+                    type="number"
+                    inputProps={{ min: 0, max: 100 }}
+                    value={evalForm.extraCurricularMarks}
+                    onChange={(e) => setEvalForm(f => ({ ...f, extraCurricularMarks: e.target.value }))}
+                    error={marksError('extraCurricularMarks')}
+                    helperText={marksError('extraCurricularMarks') ? 'Enter 0-100' : ''}
+                    size="small"
+                    fullWidth
+                  />
+                  <TextField
+                    label="Knowledge (0-100)"
+                    type="number"
+                    inputProps={{ min: 0, max: 100 }}
+                    value={evalForm.knowledgeMarks}
+                    onChange={(e) => setEvalForm(f => ({ ...f, knowledgeMarks: e.target.value }))}
+                    error={marksError('knowledgeMarks')}
+                    helperText={marksError('knowledgeMarks') ? 'Enter 0-100' : ''}
+                    size="small"
+                    fullWidth
+                  />
+                  <TextField
+                    label="Comments"
+                    value={evalForm.comments}
+                    onChange={(e) => setEvalForm(f => ({ ...f, comments: e.target.value }))}
+                    multiline
+                    rows={3}
+                    size="small"
+                    fullWidth
+                    sx={{ gridColumn: '1 / -1' }}
+                  />
+                </Box>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={() => setShowEvalModal(false)} size="small" disabled={evalLoading}>Cancel</Button>
+                <Button type="submit" variant="contained" size="small" disabled={evalLoading}>
+                  {evalLoading ? 'Submitting…' : 'Submit Evaluation'}
+                </Button>
+              </DialogActions>
+            </form>
+          </Dialog>
+
 
           {/* <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, borderTop: '1px solid #e0e0e0' }}> */}
           <Box
@@ -907,6 +1044,58 @@ export default function DynamicDashboard() {
           </Box>
         </Card>
       </Box>
+
+      {/* View Evaluation Dialog */}
+      <Dialog
+        open={showViewEvalModal}
+        onClose={() => setShowViewEvalModal(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Evaluation Remarks{viewEvalData?.registrationNo ? ` — ${viewEvalData.registrationNo}` : ''}
+        </DialogTitle>
+        <DialogContent dividers>
+          {viewEvalLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+              <CircularProgress />
+            </Box>
+          ) : viewEvalData ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Typography><strong>Academics:</strong> {viewEvalData.academicsMarks ?? viewEvalData.AcademicsMarks ?? 'N/A'}</Typography>
+              <Typography><strong>Communication Skills:</strong> {viewEvalData.communicationSkillsMarks ?? viewEvalData.CommunicationSkillsMarks ?? 'N/A'}</Typography>
+              <Typography><strong>Attitude:</strong> {viewEvalData.attitudeMarks ?? viewEvalData.AttitudeMarks ?? 'N/A'}</Typography>
+              <Typography><strong>Extra Curricular:</strong> {viewEvalData.extraCurricularMarks ?? viewEvalData.ExtraCurricularMarks ?? 'N/A'}</Typography>
+              <Typography><strong>Knowledge:</strong> {viewEvalData.knowledgeMarks ?? viewEvalData.KnowledgeMarks ?? 'N/A'}</Typography>
+              <Typography sx={{ whiteSpace: 'pre-wrap' }}><strong>Comments:</strong> {viewEvalData.comments ?? viewEvalData.Comments ?? 'No comments'}</Typography>
+              {viewEvalData.remarksBy && <Typography><strong>Remarks By:</strong> {viewEvalData.remarksBy}</Typography>}
+            </Box>
+          ) : (
+            <Typography>No evaluation remarks available.</Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowViewEvalModal(false)} size="small">Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Remarks Dialog */}
+      <Dialog
+        open={showRemarksModal}
+        onClose={() => setShowRemarksModal(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>{remarksModalTitle}</DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+            {remarksModalText}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowRemarksModal(false)} size="small">Close</Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

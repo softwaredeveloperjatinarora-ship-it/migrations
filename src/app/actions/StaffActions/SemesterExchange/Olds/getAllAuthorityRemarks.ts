@@ -25,7 +25,7 @@ export async function getAllAuthorityRemarks() {
     // const TOKEN = process.env.TOKEN;
 
     const response = await axios.get(
-      `${urls.basewebapiurl}/SemesterExchangeStudentBridge/GetSemesterExchangeAllUserRemarks`,
+      `${urls.basewebapiurl}/SemesterExchangeStudentBridge/GetAllRemarks`,
       {
         headers: {
           Authorization: `Bearer ${TOKEN}`,

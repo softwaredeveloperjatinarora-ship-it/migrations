@@ -6,7 +6,7 @@ import { authOptions } from '@/utils/authOptions';
 import https from 'https';
 import urls from '@/app/url';
 
-export async function getAllAuthorityRemarks() {
+export async function getAllApplications() {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.token) {
@@ -21,11 +21,11 @@ export async function getAllAuthorityRemarks() {
   });
 
   try {
-    const TOKEN = session?.user?.token;
     // const TOKEN = process.env.TOKEN;
-
+    const TOKEN = session?.user?.token;
+    
     const response = await axios.get(
-      `${urls.basewebapiurl}/SemesterExchangeStudentBridge/GetSemesterExchangeAllUserRemarks`,
+      `${urls.basewebapiurl}/SemesterExchangeStudentBridge/AllSemesterExchangeApplication`,
       {
         headers: {
           Authorization: `Bearer ${TOKEN}`,
@@ -49,14 +49,13 @@ export async function getAllAuthorityRemarks() {
   }
 }
 // 'use server';
-
  
 // import axios from 'axios';
 // import https from 'https';
 // import { getServerSession } from 'next-auth';
 // import { authOptions } from '@/utils/authOptions';
 
-// export async function getAllAuthorityRemarks() {
+// export async function getAllApplications() {
 //   const session = await getServerSession(authOptions);
 //   const token = session?.user?.token;
 
@@ -64,15 +63,16 @@ export async function getAllAuthorityRemarks() {
 
 //   try {
 //     const baseUrl = process.env.NEXT_PUBLIC_WEBAPI_URL_PROD;
-//     const fullUrl = `${baseUrl}/SemesterExchangeStudentBridge/GetAllRemarks`;
-//   const TOKEN = process.env.TOKEN;
+//     const TOKEN = process.env.TOKEN;
+//     const fullUrl = `${baseUrl}/SemesterExchangeStudentBridge/AllSemesterExchangeApplication`;
+
 //     const response = await axios.post(fullUrl, null, {
 //       headers: { Authorization: `Bearer ${TOKEN}` },
 //       httpsAgent: agent,
 //     });
 
 //     return {
-//       message: 'Authority remarks fetched successfully',
+//       message: 'Applications fetched successfully',
 //       status: 'success',
 //       ApiData: response.data,
 //     };

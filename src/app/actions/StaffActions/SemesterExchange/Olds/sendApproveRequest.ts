@@ -19,9 +19,9 @@ import https from 'https';
 import urls from '@/app/url';
 
 export async function sendApproveRequest(
-  RegistrationNo: string,//RegistrationNo
-  Action: 'Accept' | 'Disapprove',
-  ApprovalRemarks?: string,
+  registrationNo: string,
+  action: 'Accept' | 'Disapprove',
+  approvalRemarks?: string,
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.token) {
@@ -32,15 +32,14 @@ export async function sendApproveRequest(
  const token = session?.user?.token;
  const TOKEN = process.env.TOKEN;
   const formData = new FormData();
-  formData.append('RegistrationNo', RegistrationNo);
-  formData.append('Action', Action);
-  if (ApprovalRemarks) {
-    formData.append('ApprovalRemarks', ApprovalRemarks);
+  formData.append('RegistrationNo', registrationNo);
+  formData.append('Action', action);
+  if (approvalRemarks) {
+    formData.append('ApprovalRemarks', approvalRemarks);
   }
+
   try {
-    
     const response = await axios.post(
-      // `https://localhost:7135/api/SemesterExchangeStudentBridge/ApproveStudent`,
       `${urls.basewebapiurl}/SemesterExchangeStudentBridge/ApproveStudent`,
       formData,
       {

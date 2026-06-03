@@ -13,31 +13,27 @@ import axios from 'axios';
 import https from 'https';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/utils/authOptions';
-import urls from "@/app/url";
 
 export async function getEvaluationRemarks(registrationNo: string) {
   const session = await getServerSession(authOptions);
   const token = session?.user?.token;
-  //  const token = process.env.TOKEN;
+   const TOKEN = process.env.TOKEN;
   const agent = new https.Agent({ rejectUnauthorized: false });
 
   try {
-    debugger;
     const baseUrl = process.env.NEXT_PUBLIC_WEBAPI_URL_PROD;
-    const response = await axios.get(
-      `${urls.basewebapiurl}/SemesterExchangeStudentBridge/GetInterviewEvaluationRemarks`,
-      {
-        params: { RegNo: registrationNo },
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        httpsAgent: agent,
-      },
-    );
-   
+    const fullUrl = `${baseUrl}/SemesterExchangeStudentBridge/GetEvaluationRemarks?RegistrationNo=${encodeURIComponent(registrationNo)}`;
+
+    const response = await axios.post(fullUrl, null, {
+      headers: { Authorization: `Bearer ${token}` },
+      // headers: { Authorization: `Bearer ${TOKEN}` },
+      httpsAgent: agent,
+    });
 
     return {
       message: 'Evaluation remarks fetched successfully',
       status: 'success',
-      ApiData: response.data.item1,
+      ApiData: response.data,
     };
   } catch (error: unknown) {
     const msg = axios.isAxiosError(error)

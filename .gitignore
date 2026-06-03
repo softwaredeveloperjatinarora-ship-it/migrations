@@ -16,7 +16,7 @@ netlify.toml
 # next.js
 /.next/
 /out/z
-
+/.zip
 # production
 /build
 

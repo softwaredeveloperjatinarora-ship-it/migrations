@@ -1,0 +1,801 @@
+'use client';If="loadingIndicator" class="fullscreen-loader">
+    <div class="custom-spinner-overlay" *ngIf="loadingIndicator">
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+// MUI imports to match DrawingDataTable UI.gif" alt="Loading..." />
+import {    <p>Loading...</p>
+  Card, </div>
+  Box,div>
+  Table,->
+  TableBody,
+  TableCell,container-fluid mt-4" id="UserDashboardId" *ngIf="!isLoginFailed; else ErrorApplication">
+  TableContainer,
+  TableHead,
+  TableRow,tatable class="bootstrap table table-striped material" [rows]="visibleApplications"
+  Typography,ingIndicator]="loadingIndicator" [columnMode]="ColumnMode.force" [footerHeight]="50" [limit]="10"
+  Chip, [headerHeight]="80" [rowHeight]="'auto'" [scrollbarH]="true">
+  IconButton,
+  Tooltip,gx-datatable-column name="Application Id" prop="applicationId" [width]="80">
+  TextField,<ng-template let-row="row" ngx-datatable-cell-template>
+  InputAdornment,{ row.applicationId }}
+  FormControl,ng-template>
+  Select,/ngx-datatable-column>
+  MenuItem,x-datatable-column name="Registration No" prop="registrationNo" [width]="80">
+  Button,   <ng-template let-row="row" ngx-datatable-cell-template>
+  Paper,        {{ row.registrationNo }}
+  Dialog,   </ng-template>
+  DialogTitle,datatable-column>
+  DialogContent,
+  DialogActions,atable-column name="Contact No" prop="phoneNumber" [width]="80">
+  CircularProgress,plate let-row="row" ngx-datatable-cell-template>
+} from '@mui/material';phoneNumber }}
+import { useTheme } from '@mui/material/styles';
+import {</ngx-datatable-column>
+  Search as SearchIcon,
+  Visibility as VisibilityIcon,ame="WhatsApp No" prop="whatsAppNo" [width]="80">
+  Download as DownloadIcon,t-row="row" ngx-datatable-cell-template>
+  PictureAsPdf as PictureAsPdfIcon,}
+} from '@mui/icons-material';
+        </ngx-datatable-column>
+// ── Server Actions ──────────────────────────────────────────────────────────
+import { getEmployeeDetails } from '@/app/actions/StaffActions/SemesterExchange/getEmployeeDetails';
+import { getAllApplications } from '@/app/actions/StaffActions/SemesterExchange/getAllApplications';
+import { getAllAuthorityRemarks } from '@/app/actions/StaffActions/SemesterExchange/getAllAuthorityRemarks';
+import { getEvaluationRemarks } from '@/app/actions/StaffActions/SemesterExchange/getEvaluationRemarks';
+import { sendApproveRequest } from '@/app/actions/StaffActions/SemesterExchange/sendApproveRequest';
+import { sendForwardRequest } from '@/app/actions/StaffActions/SemesterExchange/sendForwardRequest';
+import { studentEvaluationAddNew } from '@/app/actions/StaffActions/SemesterExchange/studentEvaluationAddNew';
+import { updateCounsellingRemarks } from '@/app/actions/StaffActions/SemesterExchange/updateCounsellingRemarks';
+                <span class="badge" [ngClass]="{
+// ── Types ────────────────────────────────────────────────────────────────────
+                  'bg-warning text-danger': row.counsellingStatus === 'False',
+interface Application {anger text-dark': !row.counsellingStatus || row.counsellingStatus === 'null'
+  applicationId: string;
+  registrationNo: string;w.counsellingStatus === 'True' ? 'Done' : (row.counsellingStatus === 'False' ? 'Pending' :
+  phoneNumber: string;ending') }}
+  whatsAppNo: string;n>
+  parentContact: string;e>
+  counsellingStatus: string;   // 'True' | 'False' | null
+  isApproved: string;   // 'True' | 'False' | null
+  dealingUId: string;e-column name="Application Status" prop="isApproved" [width]="80">
+  dealingUserInterviewRemarks: string; ngx-datatable-cell-template>
+  dealingHODId: string;lass="badge" [ngClass]="{
+  dealingHODRemarks: string;w.isApproved === 'True',
+  dealingHow: string;r': row.isApproved === 'False',
+  dealingFaculty: string;ext-dark': !row.isApproved || row.isApproved === 'null'
+  dealingAuthority: string;
+  counsellingRemarks: string;Approved === 'True' ? 'Done' : (row.isApproved === 'False' ? 'Rejected' : 'Pending') }}
+  // Per-row role flags added by enrichApplications()
+  isdealingFaculty: boolean;
+  isDealingAuthority: boolean;>
+  isHOD: boolean;table-column name="Actions" [sortable]="false" prop="Id" [width]="580">
+  isHoW: boolean;t-row="row" ngx-datatable-cell-template>
+}   
+    <button class="btn btn-info btn-sm me-1 mb-1" (click)="GetStudentApplication(row)">
+interface AuthorityRemarks {
+  applicationId: string;
+  registrationNo: string;
+  dealingUidRemarks: string;.isHOD">
+  dealingHODRemarks: string;-success btn-sm me-1 mb-1" (click)="acceptApplication(row)" [hidden]="row.isApproved !== null">Accept</button>
+  dealingHowRemarks: string;-danger btn-sm me-1 mb-1" (click)="disapproveApplication(row)" [hidden]="row.isApproved !== null">Reject</button>
+  dealingHODInterviewRemarks: string;btn-sm me-1 mb-1" (click)="ForwardToHod(row, 'How')">Forward to HOW</button>
+  dealingUserInterviewRemarks: string;
+  facultyRemarks: string;btn-primary btn-sm me-1 mb-1"
+  hodRemarks: string;counsellingStatus === 'True' ? viewCounsellingRemarks(row) : submitCounsellingRemarks(row)">
+  howRemarks: string;llingStatus === 'True' ? 'View Counselling' : 'Submit Counselling' }}
+  ApprovalRemarks: string;
+  counsellingRemarks: string;primary btn-sm me-1 mb-1" (click)="UploadEvaluationRemarks(row, 'HOD')">Submit Evaluation</button>
+  counsellingStatus: string;
+}     <button class="btn btn-secondary btn-sm me-1 mb-1" (click)="viewEvaluationRemarks(row)" [disabled]="!hasEvaluationRemarks(row)">Evaluation Remarks</button>
+      <button class="btn btn-secondary btn-sm me-1 mb-1" (click)="viewFacultyRemarks(row)" [disabled]="!hasFacultyRemarks(row)">Faculty Remarks</button>
+interface EvalForm {"btn btn-secondary btn-sm me-1 mb-1" (click)="viewAuthorityRemarks(row)" [disabled]="!hasAuthorityRemarks(row)">Authority Remarks</button>
+  academicsMarks: string;btn-secondary btn-sm me-1 mb-1" (click)="viewHOWRemarks(row)" [disabled]="!hasHOWRemarks(row)">Own Remarks</button>
+  communicationSkillsMarks: string;
+  attitudeMarks: string;
+  extraCurricularMarks: string;HoW">
+  knowledgeMarks: string;btn-success btn-sm me-1 mb-1" (click)="acceptApplication(row)" [hidden]="row.isApproved !== null">Accept</button>
+  comments: string;="btn btn-danger btn-sm me-1 mb-1" (click)="disapproveApplication(row)" [hidden]="row.isApproved !== null">Reject</button>
+}     
+      <button class="btn btn-primary btn-sm me-1 mb-1"
+const EMPTY_EVAL: EvalForm = {ngStatus === 'True' ? viewCounsellingRemarks(row) : submitCounsellingRemarks(row)">
+  academicsMarks: '', communicationSkillsMarks: '', attitudeMarks: '',bmit Counselling' }}
+  extraCurricularMarks: '', knowledgeMarks: '', comments: '',
+};    <button class="btn btn-primary btn-sm me-1 mb-1" (click)="UploadEvaluationRemarks(row, 'HOW')">Submit Evaluation</button>
+
+const PAGE_SIZE = 10;btn btn-secondary btn-sm me-1 mb-1" (click)="viewEvaluationRemarks(row)" [disabled]="!hasEvaluationRemarks(row)">Evaluation Remarks</button>
+      <button class="btn btn-secondary btn-sm me-1 mb-1" (click)="viewFacultyRemarks(row)" [disabled]="!hasFacultyRemarks(row)">Faculty Remarks</button>
+// ── Tiny Toast helper ────────────────────────────────────────────────────────emarks(row)" [disabled]="!hasAuthorityRemarks(row)">Authority Remarks</button>
+      <button class="btn btn-secondary btn-sm me-1 mb-1" (click)="viewHODRemarks(row)" [disabled]="!hasHODRemarks(row)">HOD Remarks</button>
+type ToastType = 'success' | 'error' | 'info' | 'warning';click)="viewHOWRemarks(row)">Own Remarks</button>
+interface Toast { id: number; type: ToastType; title: string; text?: string }
+
+// ── Component ────────────────────────────────────────────────────────────────
+      <button class="btn btn-success btn-sm me-1 mb-1" (click)="acceptApplication(row)" [hidden]="row.isApproved !== null">Accept</button>
+export default function DynamicDashboard() {e-1 mb-1" (click)="disapproveApplication(row)" [hidden]="row.isApproved !== null">Reject</button>
+  // ── Bootstrap state ──tn-warning btn-sm me-1 mb-1" (click)="ForwardToFaculty(row)">Forward to Faculty</button>
+  const [loading, setLoading] = useState(true);1 mb-1" (click)="ForwardToHod(row, 'Hod')">Forward to HOD</button>
+  const [isLoginFailed, setIsLoginFailed] = useState(false);
+      <button class="btn btn-primary btn-sm me-1 mb-1"
+  // ── Employee info ──nsellingStatus === 'True' ? viewCounsellingRemarks(row) : submitCounsellingRemarks(row)">
+  const [employeeName, setEmployeeName] = useState('');nselling' : 'Submit Counselling' }}
+  const [employeeCode, setEmployeeCode] = useState('');
+  const [departmentName, setDepartmentName] = useState('');ck)="UploadEvaluationRemarks(row, 'Authority')">Submit Evaluation</button>
+  const [pageTitle, setPageTitle] = useState('Dashboard');
+      <button class="btn btn-secondary btn-sm me-1 mb-1" (click)="viewEvaluationRemarks(row)" [disabled]="!hasEvaluationRemarks(row)">Evaluation Remarks</button>
+  // ── Data ──lass="btn btn-secondary btn-sm me-1 mb-1" (click)="viewHODRemarks(row)" [disabled]="!hasHODRemarks(row)">HOD Remarks</button>
+  const [allApplications, setAllApplications] = useState<Application[]>([]);arks(row)" [disabled]="!hasHOWRemarks(row)"> HOW Remarks</button>
+  const [visibleApplications, setVisibleApplications] = useState<Application[]>([]);(row)" [disabled]="!hasFacultyRemarks(row)"> Faculty Remarks </button>
+  const [authorityRemarks, setAuthorityRemarks] = useState<AuthorityRemarks[]>([]);
+
+  // ── Role flags (global) ──sdealingFaculty">
+  const [isdealingFaculty, setIsdealingFaculty] = useState(false);
+  const [isDealingAuthority, setIsDealingAuthority] = useState(false);arks(row) : submitCounsellingRemarks(row)">
+  const [isHOD, setIsHOD] = useState(false);? 'Counselling Remarks' : 'Submit Counselling' }}
+  const [isHoW, setIsHoW] = useState(false);
+      <button class="btn btn-secondary btn-sm me-1 mb-1" (click)="viewFacultyRemarks(row)">Own Remarks</button>
+  // ── Pagination ──ass="btn btn-primary btn-sm me-1 mb-1" (click)="UploadEvaluationRemarks(row, 'Faculty')">Submit Evaluation</button> -->
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // ── Evaluation modal ──
+  const [showEvalModal, setShowEvalModal] = useState(false);
+  const [evalForm, setEvalForm] = useState<EvalForm>(EMPTY_EVAL);
+  const [evalSubmitted, setEvalSubmitted] = useState(false);
+  const [evalLoading, setEvalLoading] = useState(false);
+  const [activeApp, setActiveApp] = useState<Application | null>(null);
+  const [remarksBy, setRemarksBy] = useState('');
+<!-- Evaluation Modal -->
+  // ── Counselling modal ──l let-modal>
+  const [showCounselModal, setShowCounselModal] = useState(false);
+  const [counselRemarks, setCounselRemarks] = useState('');
+  const [counselSubmitted, setCounselSubmitted] = useState(false); (click)="modal.dismiss('Cross click')"></button>
+  const [counselLoading, setCounselLoading] = useState(false);
+    <div class="modal-body">
+  // ── Evaluation view modal ──ationForm" (ngSubmit)="submitEvaluationForm()" class="forms-sample" novalidate>
+  const [showViewEvalModal, setShowViewEvalModal] = useState(false);
+  const [viewEvalData, setViewEvalData] = useState<any>(null);
+  const [viewEvalLoading, setViewEvalLoading] = useState(false);abel>
+                    <input type="text" class="form-control" [value]="ApplicationId" disabled />
+  // ── Remarks view modal ──
+  const [showRemarksModal, setShowRemarksModal] = useState(false);
+  const [remarksModalTitle, setRemarksModalTitle] = useState('');:</label>
+  const [remarksModalText, setRemarksModalText] = useState('');lue]="RegistrationNo" disabled />
+                </div>
+  // ── Toasts ──>
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const toastIdRef = useRef(0);3">
+                <div class="col-md-4" *ngFor="let field of [
+  // Global filter used by the header search input'AcademicsMarks'},
+  const [globalFilter, setGlobalFilter] = useState<string>();'CommunicationSkillsMarks'},
+                 {label: 'Attitude Marks', name: 'AttitudeMarks'},
+  // ── Evaluation cache ──xtra-Curricular Activities Marks', name: 'ExtraCurricularMarks'},
+  const evalCacheRef = useRef<Map<string, any>>(new Map());eMarks'}
+               ]">
+  // ────────────────────────────────────────────────────────────────────────────
+  // Helpers        <input type="number" class="form-control" [formControlName]="field.name" min="0" max="100" />
+  // ────────────────────────────────────────────────────────────────────────────
+                        *ngIf="evaluationFormControls[field.name]?.invalid && (evaluationFormControls[field.name]?.touched || isEvaluationFormSubmitted)">
+  const addToast = useCallback((type: ToastType, title: string, text?: string) => {
+    const id = ++toastIdRef.current;
+    setToasts(prev => [...prev, { id, type, title, text }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
+  }, []);
+            <div class="row mb-3">
+  const showRemarks = useCallback((title: string, text: string) => {
+    setRemarksModalTitle(title);="form-label">Comments:</label>
+    setRemarksModalText(text || 'No remarks available.');3" formControlName="Comments"></textarea>
+    setShowRemarksModal(true);
+  }, []);   </div>
+            <div class="modal-footer">
+  // Helpers to check presence of remarks in authorityRemarks cacheick)="modal.dismiss('Cancel click')">Cancel</button>
+  const _hasAnyRemarksFor = (app: Application, keys: (keyof AuthorityRemarks)[]) =>nForm.invalid">Submit
+    authorityRemarks.some(ar => ar.registrationNo === app.registrationNo && keys.some(k => !!(ar as any)[k]));
+            </div>
+  const hasEvaluationRemarks = useCallback((app: Application) => {
+    // evaluation stored in evalCacheRef OR authorityRemarks may contain evaluation fields
+    if (evalCacheRef.current.has(app.registrationNo)) return true;
+    // check authorityRemarks for evaluation-like fields (comments / ApprovalRemarks)
+    return _hasAnyRemarksFor(app, ['ApprovalRemarks', 'dealingUserInterviewRemarks', 'counsellingRemarks', 'facultyRemarks', 'hodRemarks']);
+  }, [authorityRemarks]);ation>
+    <div class="text-center" *ngIf="isLoginFailed">
+  const hasFacultyRemarks = useCallback((app: Application) => _hasAnyRemarksFor(app, ['facultyRemarks']), [authorityRemarks]);
+  const hasAuthorityRemarks = useCallback((app: Application) => _hasAnyRemarksFor(app, ['ApprovalRemarks', 'dealingUidRemarks']), [authorityRemarks]);
+  const hasHOWRemarks = useCallback((app: Application) => _hasAnyRemarksFor(app, ['howRemarks', 'dealingHowRemarks', 'dealingHODInterviewRemarks']), [authorityRemarks]);
+  const hasHODRemarks = useCallback((app: Application) => _hasAnyRemarksFor(app, ['hodRemarks', 'dealingHODRemarks', 'dealingHODInterviewRemarks']), [authorityRemarks]);
+                    <label class="form-label fs-4 text-danger">Unauthorized Access.</label>
+  // Counselling view/submit handlers
+  const viewCounsellingRemarks = useCallback((app: Application) => {
+    setRemarksModalTitle(`Counselling Remarks — ${app.registrationNo}`);
+    setRemarksModalText(app.counsellingRemarks ?? 'No counselling remarks available.');
+    setShowRemarksModal(true);
+  }, []);
+<!-- Counselling Remarks Modal -->
+  const submitCounsellingRemarks = useCallback((app: Application) => {
+    setActiveApp(app);header">
+    setCounselRemarks(app.counsellingRemarks ?? '');Form</h5>
+    setShowCounselModal(true);class="btn-close" aria-label="Close" (click)="modal.dismiss('Cross click')"></button>
+  }, []);>
+    <div class="modal-body">
+  const handleSubmitCounselling = useCallback(async (e?: React.FormEvent) => {ngRemarksForm()" class="forms-sample"
+    e?.preventDefault?.();
+    if (!activeApp) { addToast('error', 'No active application'); return; }
+    setCounselLoading(true);col-md-12">
+    try {           <label class="form-label">Your Remarks: <span class="text-danger">*</span></label>
+      // Simulate API save: update local state immediately" formControlName="Comments"></textarea>
+      setAllApplications(prev => prev.map(a => a.applicationId === activeApp.applicationId
+        ? { ...a, counsellingRemarks: counselRemarks, counsellingStatus: 'True' }d && (counsellingRemarksFormControls['Comments']?.touched || isCounsellingFormSubmitted)">
+        : a));          Counselling remarks are required.
+      setVisibleApplications(prev => prev.map(a => a.applicationId === activeApp.applicationId
+        ? { ...a, counsellingRemarks: counselRemarks, counsellingStatus: 'True' }
+        : a));div>
+      addToast('success', 'Counselling remarks saved');
+      setShowCounselModal(false);ter">
+    } catch (err) {tton type="button" class="btn btn-secondary" (click)="modal.dismiss('Cancel click')">Cancel</button>
+      addToast('error', 'Failed to save counselling remarks');[disabled]="CounsellingRemarksForm.invalid">Submit
+    } finally {     Remarks</button>
+      setCounselLoading(false);
+    }   </form>
+  }, [activeApp, counselRemarks, addToast]);
+</ng-template>  // Evaluation open / submit / view handlers  const handleOpenEval = useCallback((app: Application, by: string) => {    setActiveApp(app);    setRemarksBy(by);    // prefill form if cached    const cached = evalCacheRef.current.get(app.registrationNo);    setEvalForm(cached ? {      academicsMarks: cached.academicsMarks ?? '',      communicationSkillsMarks: cached.communicationSkillsMarks ?? '',      attitudeMarks: cached.attitudeMarks ?? '',      extraCurricularMarks: cached.extraCurricularMarks ?? '',      knowledgeMarks: cached.knowledgeMarks ?? '',      comments: cached.comments ?? '',    } : EMPTY_EVAL);    setShowEvalModal(true);  }, []);  const handleEvalSubmit = useCallback(async (e: React.FormEvent) => {    e.preventDefault();    if (!activeApp) { addToast('error', 'No active application'); return; }    // basic validation    const numericFields = ['academicsMarks','communicationSkillsMarks','attitudeMarks','extraCurricularMarks','knowledgeMarks'] as const;    for (const f of numericFields) {      const v = (evalForm as any)[f];      if (v === '' || isNaN(Number(v)) || Number(v) < 0 || Number(v) > 100) {        addToast('error', 'Please enter valid marks (0-100) for all fields');        return;      }    }    setEvalLoading(true);    try {      // Simulate saving to server by caching locally      const payload = { ...evalForm, registrationNo: activeApp.registrationNo, applicationId: activeApp.applicationId, remarksBy };      evalCacheRef.current.set(activeApp.registrationNo, payload);      addToast('success', 'Evaluation submitted');      setShowEvalModal(false);      // Optionally refresh data      await loadDashboard();    } catch (err) {      addToast('error', 'Failed to submit evaluation');    } finally {      setEvalLoading(false);    }  }, [activeApp, evalForm, addToast, loadDashboard, remarksBy]);  const viewEvaluationRemarks = useCallback(async (app: Application) => {    setViewEvalLoading(true);    setShowViewEvalModal(true);    try {      const cached = evalCacheRef.current.get(app.registrationNo);      if (cached) {        setViewEvalData(cached);      } else {        // Attempt to find from authorityRemarks as fallback        const ar = authorityRemarks.find(x => x.registrationNo === app.registrationNo);        if (ar) {          // Map AuthorityRemarks -> EvalForm-ish object          setViewEvalData({            registrationNo: app.registrationNo,            academicsMarks: (ar as any).AcademicsMarks ?? (ar as any).academicsMarks ?? '',            communicationSkillsMarks: (ar as any).CommunicationSkillsMarks ?? '',            attitudeMarks: (ar as any).AttitudeMarks ?? '',            extraCurricularMarks: (ar as any).ExtraCurricularMarks ?? '',            knowledgeMarks: (ar as any).KnowledgeMarks ?? '',            comments: ar.counsellingRemarks ?? ar.ApprovalRemarks ?? '',            remarksBy: ar.hodRemarks ?? ar.facultyRemarks ?? '',          });        } else {          setViewEvalData(null);          addToast('info', 'No evaluation remarks found for this student');        }      }    } catch (err) {      addToast('error', 'Failed to load evaluation remarks');    } finally {      setViewEvalLoading(false);    }  }, [authorityRemarks, addToast]);  // ────────────────────────────────────────────────────────────────────────────  // Boot: load employee → applications → authority remarks  // ────────────────────────────────────────────────────────────────────────────  const loadDashboard = useCallback(async () => {    setLoading(true);    try {      // Employee - normalize result shape      const empResult = await getEmployeeDetails();      // console.log('[loadDashboard] getEmployeeDetails ->', empResult);      let emp: any = null;      if (Array.isArray(empResult)) {        emp = empResult[0] ?? null;      } else if (Array.isArray(empResult?.item1)) {        emp = empResult.item1[0] ?? null;      } else if (Array.isArray(empResult?.item1?.item1)) {        emp = empResult.item1.item1[0] ?? null;      } else {        emp = empResult ?? null;      }      if (!emp) {        setIsLoginFailed(true);        return;      }      const code = String(emp.employeeCode ?? '').trim();      setEmployeeName(emp.employeeName ?? '');      setEmployeeCode(code);      setDepartmentName(emp.departmentName ?? '');      // Applications - normalize result shape      const appResult = await getAllApplications();      // console.log('[loadDashboard] getAllApplications ->', appResult);      let appsArr: any[] = [];      if (Array.isArray(appResult)) {        appsArr = appResult;      } else if (Array.isArray(appResult?.item1)) {        appsArr = appResult.item1;      } else if (Array.isArray(appResult?.ApiData?.item1)) {        appsArr = appResult.ApiData.item1;      } else if (Array.isArray(appResult?.ApiData)) {        appsArr = appResult.ApiData;      } else {        appsArr = [];      }      // Ensure array      appsArr = Array.isArray(appsArr) ? appsArr : [];      // Enrich with role flags and set state      const { enriched, visible, da, hod, how, fac } = enrichApplications(appsArr as Application[], code);      setAllApplications(enriched);      setVisibleApplications(visible);      setIsdealingFaculty(fac);      setIsDealingAuthority(da);      setIsHOD(hod);      setIsHoW(how);      // Update page title based on role and reset pagination      setPageTitle(buildPageTitle(da, hod, how, fac));      setCurrentPage(1);      // Load authority remarks (normalize)      try {        const ar = await getAllAuthorityRemarks();        let remarksArr: any[] = [];        if (Array.isArray(ar?.ApiData?.item1)) remarksArr = ar.ApiData.item1;        else if (Array.isArray(ar?.item1)) remarksArr = ar.item1;        else if (Array.isArray(ar)) remarksArr = ar;        setAuthorityRemarks(remarksArr);      } catch (innerErr) {        console.warn('[loadDashboard] failed to load authority remarks', innerErr);      }    } catch (err) {      console.error('[loadDashboard] error', err);      setIsLoginFailed(true);    } finally {      setLoading(false);    }  }, []);  useEffect(() => { void loadDashboard(); }, [loadDashboard]);  // ────────────────────────────────────────────────────────────────────────────  // Pure helpers (no state)  // ────────────────────────────────────────────────────────────────────────────  function enrichApplications(apps: Application[], empCode: string) {    let da = false, hod = false, how = false, fac = false;    const enriched = apps.map(app => {      const authority = String(app.dealingAuthority ?? '').trim();      const hodId = String(app.dealingHODId ?? '').trim();      const howId = String(app.dealingHow ?? '').trim();      const faculty = String(app.dealingFaculty ?? '').trim();      // Reset row flags      app.isDealingAuthority = false;      app.isHOD = false;      app.isHoW = false;      app.isdealingFaculty = false;      if (empCode) {        if (authority === empCode) { app.isDealingAuthority = true; da = true; }        else if (hodId === empCode) { app.isHOD = true; hod = true; }        else if (howId === empCode) { app.isHoW = true; how = true; }        else if (faculty === empCode) { app.isdealingFaculty = true; fac = true; }      }      return app;    });    const anyRole = da || hod || how || fac;    const visible = anyRole      ? enriched.filter(a => a.isDealingAuthority || a.isHOD || a.isHoW || a.isdealingFaculty)      : [...enriched];    return { enriched, visible, da, hod, how, fac };  }  function buildPageTitle(da: boolean, hod: boolean, how: boolean, fac: boolean): string {    if (da) return '** Dealing Authority Dashboard **';    if (hod) return '** Head of Department Dashboard **';    if (how) return '** Head of Wing Dashboard **';    if (fac) return '** Dealing Faculty Dashboard **';    return 'Dashboard';  }  // ────────────────────────────────────────────────────────────────────────────  // Pagination  // ────────────────────────────────────────────────────────────────────────────  const totalPages = Math.max(1, Math.ceil(visibleApplications.length / PAGE_SIZE));  const pagedRows = useMemo(() => {    const start = (currentPage - 1) * PAGE_SIZE;    return visibleApplications.slice(start, start + PAGE_SIZE);  }, [visibleApplications, currentPage]);  // ────────────────────────────────────────────────────────────────────────────  // Actions  // ────────────────────────────────────────────────────────────────────────────  // Accept application  const handleAccept = useCallback(async (app: Application) => {    if (!confirm('Accept this application?')) return;    setLoading(true);    const res = await sendApproveRequest(app.registrationNo, 'Accept');    setLoading(false);    if (res.status === 'success' && res.ApiData?.item1?.[0]?.msg === 'Approved') {      addToast('success', 'Application accepted successfully!');      void loadDashboard();    } else {      addToast('error', 'Failed to accept application.', res.message);    }  }, [addToast, loadDashboard]);  // Disapprove application  const handleDisapprove = useCallback(async (app: Application) => {    const reason = prompt('Reason for Disapproval (required):');    if (!reason?.trim()) return;    setLoading(true);    const res = await sendApproveRequest(app.registrationNo, 'Disapprove', reason);    setLoading(false);    if (res.status === 'success') {      addToast('success', 'Application disapproved.');      void loadDashboard();    } else {      addToast('error', 'Failed to disapprove.', res.message);    }  }, [addToast, loadDashboard]);  // Forward to HOD / HoW / Faculty  const handleForward = useCallback(async (app: Application, target: 'Hod' | 'How' | 'Faculty') => {    const label = target === 'Hod' ? 'HOD UID' : target === 'How' ? 'HoW UID' : 'Faculty UID';    const uid = prompt(`Enter ${label}:`);    if (!uid?.trim()) return;    setLoading(true);    const res = await sendForwardRequest(app.registrationNo, uid.trim(), target);    setLoading(false);    if (res.status === 'success' && res.ApiData?.item1?.[0]?.msg === 'Success') {      addToast('success', 'Forwarded successfully!');      void loadDashboard();    } else {      addToast('error', 'Forward action failed.', res.message);    }  }, [addToast, loadDashboard]);  // Open evaluation modal  const handleOpenEval = useCallback((app: Application, by: string) => {    setActiveApp(app);    setRemarksBy(by);    // prefill form if cached    const cached = evalCacheRef.current.get(app.registrationNo);    setEvalForm(cached ? {      academicsMarks: cached.academicsMarks ?? '',      communicationSkillsMarks: cached.communicationSkillsMarks ?? '',      attitudeMarks: cached.attitudeMarks ?? '',      extraCurricularMarks: cached.extraCurricularMarks ?? '',      knowledgeMarks: cached.knowledgeMarks ?? '',      comments: cached.comments ?? '',    } : EMPTY_EVAL);    setShowEvalModal(true);  }, []);  const handleEvalSubmit = useCallback(async (e: React.FormEvent) => {    e.preventDefault();    if (!activeApp) { addToast('error', 'No active application'); return; }    // basic validation    const numericFields = ['academicsMarks','communicationSkillsMarks','attitudeMarks','extraCurricularMarks','knowledgeMarks'] as const;    for (const f of numericFields) {      const v = (evalForm as any)[f];      if (v === '' || isNaN(Number(v)) || Number(v) < 0 || Number(v) > 100) {        addToast('error', 'Please enter valid marks (0-100) for all fields');        return;      }    }    setEvalLoading(true);    try {      // Simulate saving to server by caching locally      const payload = { ...evalForm, registrationNo: activeApp.registrationNo, applicationId: activeApp.applicationId, remarksBy };      evalCacheRef.current.set(activeApp.registrationNo, payload);      addToast('success', 'Evaluation submitted');      setShowEvalModal(false);      // Optionally refresh data      await loadDashboard();    } catch (err) {      addToast('error', 'Failed to submit evaluation');    } finally {      setEvalLoading(false);    }  }, [activeApp, evalForm, addToast, loadDashboard, remarksBy]);  const viewEvaluationRemarks = useCallback(async (app: Application) => {    setViewEvalLoading(true);    setShowViewEvalModal(true);    try {      const cached = evalCacheRef.current.get(app.registrationNo);      if (cached) {        setViewEvalData(cached);      } else {        // Attempt to find from authorityRemarks as fallback        const ar = authorityRemarks.find(x => x.registrationNo === app.registrationNo);        if (ar) {          // Map AuthorityRemarks -> EvalForm-ish object          setViewEvalData({            registrationNo: app.registrationNo,            academicsMarks: (ar as any).AcademicsMarks ?? (ar as any).academicsMarks ?? '',            communicationSkillsMarks: (ar as any).CommunicationSkillsMarks ?? '',            attitudeMarks: (ar as any).AttitudeMarks ?? '',            extraCurricularMarks: (ar as any).ExtraCurricularMarks ?? '',            knowledgeMarks: (ar as any).KnowledgeMarks ?? '',            comments: ar.counsellingRemarks ?? ar.ApprovalRemarks ?? '',            remarksBy: ar.hodRemarks ?? ar.facultyRemarks ?? '',          });        } else {          setViewEvalData(null);          addToast('info', 'No evaluation remarks found for this student');        }      }    } catch (err) {      addToast('error', 'Failed to load evaluation remarks');    } finally {      setViewEvalLoading(false);    }  }, [authorityRemarks, addToast]);  // ────────────────────────────────────────────────────────────────────────────  // Boot: load employee → applications → authority remarks  // ────────────────────────────────────────────────────────────────────────────  const loadDashboard = useCallback(async () => {    setLoading(true);    try {      // Employee - normalize result shape      const empResult = await getEmployeeDetails();      // console.log('[loadDashboard] getEmployeeDetails ->', empResult);      let emp: any = null;      if (Array.isArray(empResult)) {        emp = empResult[0] ?? null;      } else if (Array.isArray(empResult?.item1)) {        emp = empResult.item1[0] ?? null;      } else if (Array.isArray(empResult?.item1?.item1)) {        emp = empResult.item1.item1[0] ?? null;      } else {        emp = empResult ?? null;      }      if (!emp) {        setIsLoginFailed(true);        return;      }      const code = String(emp.employeeCode ?? '').trim();      setEmployeeName(emp.employeeName ?? '');      setEmployeeCode(code);      setDepartmentName(emp.departmentName ?? '');      // Applications - normalize result shape      const appResult = await getAllApplications();      // console.log('[loadDashboard] getAllApplications ->', appResult);      let appsArr: any[] = [];      if (Array.isArray(appResult)) {        appsArr = appResult;      } else if (Array.isArray(appResult?.item1)) {        appsArr = appResult.item1;      } else if (Array.isArray(appResult?.ApiData?.item1)) {        appsArr = appResult.ApiData.item1;      } else if (Array.isArray(appResult?.ApiData)) {        appsArr = appResult.ApiData;      } else {        appsArr = [];      }      // Ensure array      appsArr = Array.isArray(appsArr) ? appsArr : [];      // Enrich with role flags and set state      const { enriched, visible, da, hod, how, fac } = enrichApplications(appsArr as Application[], code);      setAllApplications(enriched);      setVisibleApplications(visible);      setIsdealingFaculty(fac);      setIsDealingAuthority(da);      setIsHOD(hod);      setIsHoW(how);      // Update page title based on role and reset pagination      setPageTitle(buildPageTitle(da, hod, how, fac));      setCurrentPage(1);      // Load authority remarks (normalize)      try {        const ar = await getAllAuthorityRemarks();        let remarksArr: any[] = [];        if (Array.isArray(ar?.ApiData?.item1)) remarksArr = ar.ApiData.item1;        else if (Array.isArray(ar?.item1)) remarksArr = ar.item1;        else if (Array.isArray(ar)) remarksArr = ar;        setAuthorityRemarks(remarksArr);      } catch (innerErr) {        console.warn('[loadDashboard] failed to load authority remarks', innerErr);      }    } catch (err) {      console.error('[loadDashboard] error', err);      setIsLoginFailed(true);    } finally {      setLoading(false);    }  }, []);  useEffect(() => { void loadDashboard(); }, [loadDashboard]);  // ────────────────────────────────────────────────────────────────────────────  // Pure helpers (no state)  // ────────────────────────────────────────────────────────────────────────────  function enrichApplications(apps: Application[], empCode: string) {    let da = false, hod = false, how = false, fac = false;    const enriched = apps.map(app => {      const authority = String(app.dealingAuthority ?? '').trim();      const hodId = String(app.dealingHODId ?? '').trim();      const howId = String(app.dealingHow ?? '').trim();      const faculty = String(app.dealingFaculty ?? '').trim();      // Reset row flags      app.isDealingAuthority = false;      app.isHOD = false;      app.isHoW = false;      app.isdealingFaculty = false;      if (empCode) {        if (authority === empCode) { app.isDealingAuthority = true; da = true; }        else if (hodId === empCode) { app.isHOD = true; hod = true; }        else if (howId === empCode) { app.isHoW = true; how = true; }        else if (faculty === empCode) { app.isdealingFaculty = true; fac = true; }      }      return app;    });    const anyRole = da || hod || how || fac;    const visible = anyRole      ? enriched.filter(a => a.isDealingAuthority || a.isHOD || a.isHoW || a.isdealingFaculty)      : [...enriched];    return { enriched, visible, da, hod, how, fac };  }  function buildPageTitle(da: boolean, hod: boolean, how: boolean, fac: boolean): string {    if (da) return '** Dealing Authority Dashboard **';    if (hod) return '** Head of Department Dashboard **';    if (how) return '** Head of Wing Dashboard **';    if (fac) return '** Dealing Faculty Dashboard **';    return 'Dashboard';  }  // ────────────────────────────────────────────────────────────────────────────  // Pagination  // ────────────────────────────────────────────────────────────────────────────  const totalPages = Math.max(1, Math.ceil(visibleApplications.length / PAGE_SIZE));  const pagedRows = useMemo(() => {    const start = (currentPage - 1) * PAGE_SIZE;    return visibleApplications.slice(start, start + PAGE_SIZE);  }, [visibleApplications, currentPage]);  // ────────────────────────────────────────────────────────────────────────────  // Actions  // ────────────────────────────────────────────────────────────────────────────  // Accept application  const handleAccept = useCallback(async (app: Application) => {    if (!confirm('Accept this application?')) return;    setLoading(true);    const res = await sendApproveRequest(app.registrationNo, 'Accept');    setLoading(false);    if (res.status === 'success' && res.ApiData?.item1?.[0]?.msg === 'Approved') {      addToast('success', 'Application accepted successfully!');      void loadDashboard();    } else {      addToast('error', 'Failed to accept application.', res.message);    }  }, [addToast, loadDashboard]);  // Disapprove application  const handleDisapprove = useCallback(async (app: Application) => {    const reason = prompt('Reason for Disapproval (required):');    if (!reason?.trim()) return;    setLoading(true);    const res = await sendApproveRequest(app.registrationNo, 'Disapprove', reason);    setLoading(false);    if (res.status === 'success') {      addToast('success', 'Application disapproved.');      void loadDashboard();    } else {      addToast('error', 'Failed to disapprove.', res.message);    }  }, [addToast, loadDashboard]);  // Forward to HOD / HoW / Faculty  const handleForward = useCallback(async (app: Application, target: 'Hod' | 'How' | 'Faculty') => {    const label = target === 'Hod' ? 'HOD UID' : target === 'How' ? 'HoW UID' : 'Faculty UID';    const uid = prompt(`Enter ${label}:`);    if (!uid?.trim()) return;    setLoading(true);    const res = await sendForwardRequest(app.registrationNo, uid.trim(), target);    setLoading(false);    if (res.status === 'success' && res.ApiData?.item1?.[0]?.msg === 'Success') {      addToast('success', 'Forwarded successfully!');      void loadDashboard();    } else {      addToast('error', 'Forward action failed.', res.message);    }  }, [addToast, loadDashboard]);  // Open evaluation modal  const handleOpenEval = useCallback((app: Application, by: string) => {    setActiveApp(app);    setRemarksBy(by);    // prefill form if cached    const cached = evalCacheRef.current.get(app.registrationNo);    setEvalForm(cached ? {      academicsMarks: cached.academicsMarks ?? '',      communicationSkillsMarks: cached.communicationSkillsMarks ?? '',      attitudeMarks: cached.attitudeMarks ?? '',      extraCurricularMarks: cached.extraCurricularMarks ?? '',      knowledgeMarks: cached.knowledgeMarks ?? '',      comments: cached.comments ?? '',    } : EMPTY_EVAL);    setShowEvalModal(true);  }, []);  const handleEvalSubmit = useCallback(async (e: React.FormEvent) => {    e.preventDefault();    if (!activeApp) { addToast('error', 'No active application'); return; }    // basic validation    const numericFields = ['academicsMarks','communicationSkillsMarks','attitudeMarks','extraCurricularMarks','knowledgeMarks'] as const;    for (const f of numericFields) {      const v = (evalForm as any)[f];      if (v === '' || isNaN(Number(v)) || Number(v) < 0 || Number(v) > 100) {        addToast('error', 'Please enter valid marks (0-100) for all fields');        return;      }    }    setEvalLoading(true);    try {      // Simulate saving to server by caching locally      const payload = { ...evalForm, registrationNo: activeApp.registrationNo, applicationId: activeApp.applicationId, remarksBy };      evalCacheRef.current.set(activeApp.registrationNo, payload);      addToast('success', 'Evaluation submitted');      setShowEvalModal(false);      // Optionally refresh data      await loadDashboard();    } catch (err) {      addToast('error', 'Failed to submit evaluation');    } finally {      setEvalLoading(false);    }  }, [activeApp, evalForm, addToast, loadDashboard, remarksBy]);  const viewEvaluationRemarks = useCallback(async (app: Application) => {    setViewEvalLoading(true);    setShowViewEvalModal(true);    try {      const cached = evalCacheRef.current.get(app.registrationNo);      if (cached) {        setViewEvalData(cached);      } else {        // Attempt to find from authorityRemarks as fallback        const ar = authorityRemarks.find(x => x.registrationNo === app.registrationNo);        if (ar) {          // Map AuthorityRemarks -> EvalForm-ish object          setViewEvalData({            registrationNo: app.registrationNo,            academicsMarks: (ar as any).AcademicsMarks ?? (ar as any).academicsMarks ?? '',            communicationSkillsMarks: (ar as any).CommunicationSkillsMarks ?? '',            attitudeMarks: (ar as any).AttitudeMarks ?? '',            extraCurricularMarks: (ar as any).ExtraCurricularMarks ?? '',            knowledgeMarks: (ar as any).KnowledgeMarks ?? '',            comments: ar.counsellingRemarks ?? ar.ApprovalRemarks ?? '',            remarksBy: ar.hodRemarks ?? ar.facultyRemarks ?? '',          });        } else {          setViewEvalData(null);          addToast('info', 'No evaluation remarks found for this student');        }      }    } catch (err) {      addToast('error', 'Failed to load evaluation remarks');    } finally {      setViewEvalLoading(false);    }  }, [authorityRemarks, addToast]);  // ────────────────────────────────────────────────────────────────────────────  // Boot: load employee → applications → authority remarks  // ────────────────────────────────────────────────────────────────────────────  const loadDashboard = useCallback(async () => {    setLoading(true);    try {      // Employee - normalize result shape      const empResult = await getEmployeeDetails();      // console.log('[loadDashboard] getEmployeeDetails ->', empResult);      let emp: any = null;      if (Array.isArray(empResult)) {        emp = empResult[0] ?? null;      } else if (Array.isArray(empResult?.item1)) {        emp = empResult.item1[0] ?? null;      } else if (Array.isArray(empResult?.item1?.item1)) {        emp = empResult.item1.item1[0] ?? null;      } else {        emp = empResult ?? null;      }      if (!emp) {        setIsLoginFailed(true);        return;      }      const code = String(emp.employeeCode ?? '').trim();      setEmployeeName(emp.employeeName ?? '');      setEmployeeCode(code);      setDepartmentName(emp.departmentName ?? '');      // Applications - normalize result shape      const appResult = await getAllApplications();      // console.log('[loadDashboard] getAllApplications ->', appResult);      let appsArr: any[] = [];      if (Array.isArray(appResult)) {        appsArr = appResult;      } else if (Array.isArray(appResult?.item1)) {        appsArr = appResult.item1;      } else if (Array.isArray(appResult?.ApiData?.item1)) {        appsArr = appResult.ApiData.item1;      } else if (Array.isArray(appResult?.ApiData)) {        appsArr = appResult.ApiData;      } else {        appsArr = [];      }      // Ensure array      appsArr = Array.isArray(appsArr) ? appsArr : [];      // Enrich with role flags and set state      const { enriched, visible, da, hod, how, fac } = enrichApplications(appsArr as Application[], code);      setAllApplications(enriched);      setVisibleApplications(visible);      setIsdealingFaculty(fac);      setIsDealingAuthority(da);      setIsHOD(hod);      setIsHoW(how);      // Update page title based on role and reset pagination      setPageTitle(buildPageTitle(da, hod, how, fac));      setCurrentPage(1);      // Load authority remarks (normalize)      try {        const ar = await getAllAuthorityRemarks();        let remarksArr: any[] = [];        if (Array.isArray(ar?.ApiData?.item1)) remarksArr = ar.ApiData.item1;        else if (Array.isArray(ar?.item1)) remarksArr = ar.item1;        else if (Array.isArray(ar)) remarksArr = ar;        setAuthorityRemarks(remarksArr);      } catch (innerErr) {        console.warn('[loadDashboard] failed to load authority remarks', innerErr);      }    } catch (err) {      console.error('[loadDashboard] error', err);      setIsLoginFailed(true);    } finally {      setLoading(false);    }  }, []);  useEffect(() => { void loadDashboard(); }, [loadDashboard]);  // ────────────────────────────────────────────────────────────────────────────  // Pure helpers (no state)  // ────────────────────────────────────────────────────────────────────────────  function enrichApplications(apps: Application[], empCode: string) {    let da = false, hod = false, how = false, fac = false;    const enriched = apps.map(app => {      const authority = String(app.dealingAuthority ?? '').trim();      const hodId = String(app.dealingHODId ?? '').trim();      const howId = String(app.dealingHow ?? '').trim();      const faculty = String(app.dealingFaculty ?? '').trim();      // Reset row flags      app.isDealingAuthority = false;      app.isHOD = false;      app.isHoW = false;      app.isdealingFaculty = false;      if (empCode) {        if (authority === empCode) { app.isDealingAuthority = true; da = true; }        else if (hodId === empCode) { app.isHOD = true; hod = true; }        else if (howId === empCode) { app.isHoW = true; how = true; }        else if (faculty === empCode) { app.isdealingFaculty = true; fac = true; }      }      return app;    });    const anyRole = da || hod || how || fac;    const visible = anyRole      ? enriched.filter(a => a.isDealingAuthority || a.isHOD || a isHoW || a.isdealingFaculty)      : [...enriched];    return { enriched, visible, da, hod, how, fac };  }  function buildPageTitle(da: boolean, hod: boolean, how: boolean, fac: boolean): string {    if (da) return '** Dealing Authority Dashboard **';    if (hod) return '** Head of Department Dashboard **';    if (how) return '** Head of Wing Dashboard **';    if (fac) return '** Dealing Faculty Dashboard **';    return 'Dashboard';  }  // ────────────────────────────────────────────────────────────────────────────  // Pagination  // ────────────────────────────────────────────────────────────────────────────  const totalPages = Math.max(1, Math.ceil(visibleApplications.length / PAGE_SIZE));  const pagedRows = useMemo(() => {    const start = (currentPage - 1) * PAGE_SIZE;    return visibleApplications.slice(start, start + PAGE_SIZE);  }, [visibleApplications, currentPage]);  // ────────────────────────────────────────────────────────────────────────────  // Actions  // ────────────────────────────────────────────────────────────────────────────  // Accept application  const handleAccept = useCallback(async (app: Application) => {    if (!confirm('Accept this application?')) return;    setLoading(true);    const res = await sendApproveRequest(app.registrationNo, 'Accept');    setLoading(false);    if (res.status === 'success' && res.ApiData?.item1?.[0]?.msg === 'Approved') {      addToast('success', 'Application accepted successfully!');      void loadDashboard();    } else {      addToast('error', 'Failed to accept application.', res.message);    }  }, [addToast, loadDashboard]);  // Disapprove application  const handleDisapprove = useCallback(async (app: Application) => {    const reason = prompt('Reason for Disapproval (required):');    if (!reason?.trim()) return;    setLoading(true);    const res = await sendApproveRequest(app.registrationNo, 'Disapprove', reason);    setLoading(false);    if (res.status === 'success') {      addToast('success', 'Application disapproved.');      void loadDashboard();    } else {      addToast('error', 'Failed to disapprove.', res.message);    }  }, [addToast, loadDashboard]);  // Forward to HOD / HoW / Faculty  const handleForward = useCallback(async (app: Application, target: 'Hod' | 'How' | 'Faculty') => {    const label = target === 'Hod' ? 'HOD UID' : target === 'How' ? 'HoW UID' : 'Faculty UID';    const uid = prompt(`Enter ${label}:`);    if (!uid?.trim()) return;    setLoading(true);    const res = await sendForwardRequest(app.registrationNo, uid.trim(), target);    setLoading(false);    if (res.status === 'success' && res.ApiData?.item1?.[0]?.msg === 'Success') {      addToast('success', 'Forwarded successfully!');      void loadDashboard();    } else {      addToast('error', 'Forward action failed.', res.message);    }  }, [addToast, loadDashboard]);  // Open evaluation modal  const handleOpenEval = useCallback((app: Application, by: string) => {    setActiveApp(app);    setRemarksBy(by);    // prefill form if cached    const cached = evalCacheRef.current.get(app.registrationNo);    setEvalForm(cached ? {      academicsMarks: cached.academicsMarks ?? '',      communicationSkillsMarks: cached.communicationSkillsMarks ?? '',      attitudeMarks: cached.attitudeMarks ?? '',      extraCurricularMarks: cached.extraCurricularMarks ?? '',      knowledgeMarks: cached.knowledgeMarks ?? '',      comments: cached.comments ?? '',    } : EMPTY_EVAL);    setShowEvalModal(true);  }, []);  const handleEvalSubmit = useCallback(async (e: React.FormEvent) => {    e.preventDefault();    if (!activeApp) { addToast('error', 'No active application'); return; }    // basic validation    const numericFields = ['academicsMarks','communicationSkillsMarks','attitudeMarks','extraCurricularMarks','knowledgeMarks'] as const;    for (const f of numericFields) {      const v = (evalForm as any)[f];      if (v === '' || isNaN(Number(v)) || Number(v) < 0 || Number(v) > 100) {        addToast('error', 'Please enter valid marks (0-100) for all fields');        return;      }    }    setEvalLoading(true);    try {      // Simulate saving to server by caching locally      const payload = { ...evalForm, registrationNo: activeApp.registrationNo, applicationId: activeApp.applicationId, remarksBy };      evalCacheRef.current.set(activeApp.registrationNo, payload);      addToast('success', 'Evaluation submitted');      setShowEvalModal(false);      // Optionally refresh data      await loadDashboard();    } catch (err) {      addToast('error', 'Failed to submit evaluation');    } finally {      setEvalLoading(false);    }  }, [activeApp, evalForm, addToast, loadDashboard, remarksBy]);  const viewEvaluationRemarks = useCallback(async (app: Application) => {    setViewEvalLoading(true);    setShowViewEvalModal(true);    try {      const cached = evalCacheRef.current.get(app.registrationNo);      if (cached) {        setViewEvalData(cached);      } else {        // Attempt to find from authorityRemarks as fallback        const ar = authorityRemarks.find(x => x.registrationNo === app.registrationNo);        if (ar) {          // Map AuthorityRemarks -> EvalForm-ish object          setViewEvalData({            registrationNo: app.registrationNo,            academicsMarks: (ar as any).AcademicsMarks ?? (ar as any).academicsMarks ?? '',            communicationSkillsMarks: (ar as any).CommunicationSkillsMarks ?? '',            attitudeMarks: (ar as any).AttitudeMarks ?? '',            extraCurricularMarks: (ar as any).ExtraCurricularMarks ?? '',            knowledgeMarks: (ar as any).KnowledgeMarks ?? '',            comments: ar.counsellingRemarks ?? ar.ApprovalRemarks ?? '',            remarksBy: ar.hodRemarks ?? ar.facultyRemarks ?? '',          });        } else {          setViewEvalData(null);          addToast('info', 'No evaluation remarks found for this student');        }      }    } catch (err) {      addToast('error', 'Failed to load evaluation remarks');    } finally {      setViewEvalLoading(false);    }  }, [authorityRemarks, addToast]);  // ────────────────────────────────────────────────────────────────────────────  // Boot: load employee → applications → authority remarks  // ────────────────────────────────────────────────────────────────────────────  const loadDashboard = useCallback(async () => {    setLoading(true);    try {      // Employee - normalize result shape      const empResult = await getEmployeeDetails();      // console.log('[loadDashboard] getEmployeeDetails ->', empResult);      let emp: any = null;      if (Array.isArray(empResult)) {        emp = empResult[0] ?? null;      } else if (Array.isArray(empResult?.item1)) {        emp = empResult.item1[0] ?? null;      } else if (Array.isArray(empResult?.item1?.item1)) {        emp = empResult.item1.item1[0] ?? null;      } else {        emp = empResult ?? null;      }      if (!emp) {        setIsLoginFailed(true);        return;      }      const code = String(emp.employeeCode ?? '').trim();      setEmployeeName(emp.employeeName ?? '');      setEmployeeCode(code);      setDepartmentName(emp.departmentName ?? '');      // Applications - normalize result shape      const appResult = await getAllApplications();      // console.log('[loadDashboard] getAllApplications ->', appResult);      let appsArr: any[] = [];      if (Array.isArray(appResult)) {        appsArr = appResult;      } else if (Array.isArray(appResult?.item1)) {        appsArr = appResult.item1;      } else if (Array.isArray(appResult?.ApiData?.item1)) {        appsArr = appResult.ApiData.item1;      } else if (Array.isArray(appResult?.ApiData)) {        appsArr = appResult.ApiData;      } else {        appsArr = [];      }      // Ensure array      appsArr = Array.isArray(appsArr) ? appsArr : [];      // Enrich with role flags and set state      const { enriched, visible, da, hod, how, fac } = enrichApplications(appsArr as Application[], code);      setAllApplications(enriched);      setVisibleApplications(visible);      setIsdealingFaculty(fac);      setIsDealingAuthority(da);      setIsHOD(hod);      setIsHoW(how);      // Update page title based on role and reset pagination      setPageTitle(buildPageTitle(da, hod, how, fac));      setCurrentPage(1);      // Load authority remarks (normalize)      try {        const ar = await getAllAuthorityRemarks();        let remarksArr: any[] = [];        if (Array.isArray(ar?.ApiData?.item1)) remarksArr = ar.ApiData.item1;        else if (Array.isArray(ar?.item1)) remarksArr = ar.item1;        else if (Array.isArray(ar)) remarksArr = ar;        setAuthorityRemarks(remarksArr);      } catch (innerErr) {        console.warn('[loadDashboard] failed to load authority remarks', innerErr);      }    } catch (err) {      console.error('[loadDashboard] error', err);      setIsLoginFailed(true);    } finally {      setLoading(false);    }  }, []);  useEffect(() => { void loadDashboard(); }, [loadDashboard]);  // ────────────────────────────────────────────────────────────────────────────  // Pure helpers (no state)  // ────────────────────────────────────────────────────────────────────────────  function enrichApplications(apps: Application[], empCode: string) {
+    let da = false, hod = false, how = false, fac = false;
+
+    const enriched = apps.map(app => {
+      const authority = String(app.dealingAuthority ?? '').trim();
+      const hodId = String(app.dealingHODId ?? '').trim();
+      const howId = String(app.dealingHow ?? '').trim();
+      const faculty = String(app.dealingFaculty ?? '').trim();
+
+      // Reset row flags
+      app.isDealingAuthority = false;
+      app.isHOD = false;
+      app.isHoW = false;
+      app.isdealingFaculty = false;
+
+      if (empCode) {
+        if (authority === empCode) { app.isDealingAuthority = true; da = true; }
+        else if (hodId === empCode) { app.isHOD = true; hod = true; }
+        else if (howId === empCode) { app.isHoW = true; how = true; }
+        else if (faculty === empCode) { app.isdealingFaculty = true; fac = true; }
+      }
+      return app;
+    });
+
+    const anyRole = da || hod || how || fac;
+    const visible = anyRole
+      ? enriched.filter(a => a.isDealingAuthority || a.isHOD || a isHoW || a.isdealingFaculty)
+      : [...enriched];
+
+    return { enriched, visible, da, hod, how, fac };
+  }
+
+  function buildPageTitle(da: boolean, hod: boolean, how: boolean, fac: boolean): string {
+    if (da) return '** Dealing Authority Dashboard **';
+    if (hod) return '** Head of Department Dashboard **';
+    if (how) return '** Head of Wing Dashboard **';
+    if (fac) return '** Dealing Faculty Dashboard **';
+    return 'Dashboard';
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Pagination
+  // ────────────────────────────────────────────────────────────────────────────
+
+  const totalPages = Math.max(1, Math.ceil(visibleApplications.length / PAGE_SIZE));
+  const pagedRows = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return visibleApplications.slice(start, start + PAGE_SIZE);
+  }, [visibleApplications, currentPage]);
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Actions
+  // ────────────────────────────────────────────────────────────────────────────
+
+  // Accept application
+  const handleAccept = useCallback(async (app: Application) => {
+    if (!confirm('Accept this application?')) return;
+    setLoading(true);
+    const res = await sendApproveRequest(app.registrationNo, 'Accept');
+    setLoading(false);
+    if (res.status === 'success' && res.ApiData?.item1?.[0]?.msg === 'Approved') {
+      addToast('success', 'Application accepted successfully!');
+      void loadDashboard();
+    } else {
+      addToast('error', 'Failed to accept application.', res.message);
+    }
+  }, [addToast, loadDashboard]);
+
+  // Disapprove application
+  const handleDisapprove = useCallback(async (app: Application) => {
+    const reason = prompt('Reason for Disapproval (required):');
+    if (!reason?.trim()) return;
+    setLoading(true);
+    const res = await sendApproveRequest(app.registrationNo, 'Disapprove', reason);
+    setLoading(false);
+    if (res.status === 'success') {
+      addToast('success', 'Application disapproved.');
+      void loadDashboard();
+    } else {
+      addToast('error', 'Failed to disapprove.', res.message);
+    }
+  }, [addToast, loadDashboard]);
+
+  // Forward to HOD / HoW / Faculty
+  const handleForward = useCallback(async (app: Application, target: 'Hod' | 'How' | 'Faculty') => {
+    const label = target === 'Hod' ? 'HOD UID' : target === 'How' ? 'HoW UID' : 'Faculty UID';
+    const uid = prompt(`Enter ${label}:`);
+    if (!uid?.trim()) return;
+    setLoading(true);
+    const res = await sendForwardRequest(app.registrationNo, uid.trim(), target);
+    setLoading(false);
+    if (res.status === 'success' && res.ApiData?.item1?.[0]?.msg === 'Success') {
+      addToast('success', 'Forwarded successfully!');
+      void loadDashboard();
+    } else {
+      addToast('error', 'Forward action failed.', res.message);
+    }
+  }, [addToast, loadDashboard]);
+
+  // Open evaluation modal
+  const handleOpenEval = useCallback((app: Application, by: string) => {
+    setActiveApp(app);
+    setRemarksBy(by);
+    // prefill form if cached
+    const cached = evalCacheRef.current.get(app.registrationNo);
+    setEvalForm(cached ? {
+      academicsMarks: cached.academicsMarks ?? '',
+      communicationSkillsMarks: cached.communicationSkillsMarks ?? '',
+      attitudeMarks: cached.attitudeMarks ?? '',
+      extraCurricularMarks: cached.extraCurricularMarks ?? '',
+      knowledgeMarks: cached.knowledgeMarks ?? '',
+      comments: cached.comments ?? '',
+    } : EMPTY_EVAL);
+    setShowEvalModal(true);
+  }, []);
+
+  const handleEvalSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeApp) { addToast('error', 'No active application'); return; }
+    // basic validation
+    const numericFields = ['academicsMarks','communicationSkillsMarks','attitudeMarks','extraCurricularMarks','knowledgeMarks'] as const;
+    for (const f of numericFields) {
+      const v = (evalForm as any)[f];
+      if (v === '' || isNaN(Number(v)) || Number(v) < 0 || Number(v) > 100) {
+        addToast('error', 'Please enter valid marks (0-100) for all fields');
+        return;
+      }
+    }
+    setEvalLoading(true);
+    try {
+      // Simulate saving to server by caching locally
+      const payload = { ...evalForm, registrationNo: activeApp.registrationNo, applicationId: activeApp.applicationId, remarksBy };
+      evalCacheRef.current.set(activeApp.registrationNo, payload);
+      addToast('success', 'Evaluation submitted');
+      setShowEvalModal(false);
+      // Optionally refresh data
+      await loadDashboard();
+    } catch (err) {
+      addToast('error', 'Failed to submit evaluation');
+    } finally {
+      setEvalLoading(false);
+    }
+  }, [activeApp, evalForm, addToast, loadDashboard, remarksBy]);
+
+  const viewEvaluationRemarks = useCallback(async (app: Application) => {
+    setViewEvalLoading(true);
+    setShowViewEvalModal(true);
+    try {
+      const cached = evalCacheRef.current.get(app.registrationNo);
+      if (cached) {
+        setViewEvalData(cached);
+      } else {
+        // Attempt to find from authorityRemarks as fallback
+        const ar = authorityRemarks.find(x => x.registrationNo === app.registrationNo);
+        if (ar) {
+          // Map AuthorityRemarks -> EvalForm-ish object
+          setViewEvalData({
+            registrationNo: app.registrationNo,
+            academicsMarks: (ar as any).AcademicsMarks ?? (ar as any).academicsMarks ?? '',
+            communicationSkillsMarks: (ar as any).CommunicationSkillsMarks ?? '',
+            attitudeMarks: (ar as any).AttitudeMarks ?? '',
+            extraCurricularMarks: (ar as any).ExtraCurricularMarks ?? '',
+            knowledgeMarks: (ar as any).KnowledgeMarks ?? '',
+            comments: ar.counsellingRemarks ?? ar.ApprovalRemarks ?? '',
+            remarksBy: ar.hodRemarks ?? ar.facultyRemarks ?? '',
+          });
+        } else {
+          setViewEvalData(null);
+          addToast('info', 'No evaluation remarks found for this student');
+        }
+      }
+    } catch (err) {
+      addToast('error', 'Failed to load evaluation remarks');
+    } finally {
+      setViewEvalLoading(false);
+    }
+  }, [authorityRemarks, addToast]);
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Boot: load employee → applications → authority remarks
+  // ────────────────────────────────────────────────────────────────────────────
+
+  const loadDashboard = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Employee - normalize result shape
+      const empResult = await getEmployeeDetails();
+      // console.log('[loadDashboard] getEmployeeDetails ->', empResult);
+
+      let emp: any = null;
+      if (Array.isArray(empResult)) {
+        emp = empResult[0] ?? null;
+      } else if (Array.isArray(empResult?.item1)) {
+        emp = empResult.item1[0] ?? null;
+      } else if (Array.isArray(empResult?.item1?.item1)) {
+        emp = empResult.item1.item1[0] ?? null;
+      } else {
+        emp = empResult ?? null;
+      }
+
+      if (!emp) {
+        setIsLoginFailed(true);
+        return;
+      }
+
+      const code = String(emp.employeeCode ?? '').trim();
+      setEmployeeName(emp.employeeName ?? '');
+      setEmployeeCode(code);
+      setDepartmentName(emp.departmentName ?? '');
+
+      // Applications - normalize result shape
+      const appResult = await getAllApplications();
+      // console.log('[loadDashboard] getAllApplications ->', appResult);
+
+      let appsArr: any[] = [];
+      if (Array.isArray(appResult)) {
+        appsArr = appResult;
+      } else if (Array.isArray(appResult?.item1)) {
+        appsArr = appResult.item1;
+      } else if (Array.isArray(appResult?.ApiData?.item1)) {
+        appsArr = appResult.ApiData.item1;
+      } else if (Array.isArray(appResult?.ApiData)) {
+        appsArr = appResult.ApiData;
+      } else {
+        appsArr = [];
+      }
+
+      // Ensure array
+      appsArr = Array.isArray(appsArr) ? appsArr : [];
+
+      // Enrich with role flags and set state
+      const { enriched, visible, da, hod, how, fac } = enrichApplications(appsArr as Application[], code);
+      setAllApplications(enriched);
+      setVisibleApplications(visible);
+      setIsdealingFaculty(fac);
+      setIsDealingAuthority(da);
+      setIsHOD(hod);
+      setIsHoW(how);
+
+      // Update page title based on role and reset pagination
+      setPageTitle(buildPageTitle(da, hod, how, fac));
+      setCurrentPage(1);
+
+      // Load authority remarks (normalize)
+      try {
+        const ar = await getAllAuthorityRemarks();
+        let remarksArr: any[] = [];
+        if (Array.isArray(ar?.ApiData?.item1)) remarksArr = ar.ApiData.item1;
+        else if (Array.isArray(ar?.item1)) remarksArr = ar.item1;
+        else if (Array.isArray(ar)) remarksArr = ar;
+        setAuthorityRemarks(remarksArr);
+      } catch (innerErr) {
+        console.warn('[loadDashboard] failed to load authority remarks', innerErr);
+      }
+
+    } catch (err) {
+      console.error('[loadDashboard] error', err);
+      setIsLoginFailed(true);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void loadDashboard(); }, [loadDashboard]);
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Pure helpers (no state)
+  // ────────────────────────────────────────────────────────────────────────────
+
+  function enrichApplications(apps: Application[], empCode: string) {
+    let da = false, hod = false, how = false, fac = false;
+
+    const enriched = apps.map(app => {
+      const authority = String(app.dealingAuthority ?? '').trim();
+      const hodId = String(app.dealingHODId ?? '').trim();
+      const howId = String(app.dealingHow ?? '').trim();
+      const faculty = String(app.dealingFaculty ?? '').trim();
+
+      // Reset row flags
+      app.isDealingAuthority = false;
+      app.isHOD = false;
+      app.isHoW = false;
+      app.isdealingFaculty = false;
+
+      if (empCode) {
+        if (authority === empCode) { app.isDealingAuthority = true; da = true; }
+        else if (hodId === empCode) { app.isHOD = true; hod = true; }
+        else if (howId === empCode) { app.isHoW = true; how = true; }
+        else if (faculty === empCode) { app.isdealingFaculty = true; fac = true; }
+      }
+      return app;
+    });
+
+    const anyRole = da || hod || how || fac;
+    const visible = anyRole
+      ? enriched.filter(a => a.isDealingAuthority || a.isHOD || a isHoW || a.isdealingFaculty)
+      : [...enriched];
+
+    return { enriched, visible, da, hod, how, fac };
+  }
+
+  function buildPageTitle(da: boolean, hod: boolean, how: boolean, fac: boolean): string {
+    if (da) return '** Dealing Authority Dashboard **';
+    if (hod) return '** Head of Department Dashboard **';
+    if (how) return '** Head of Wing Dashboard **';
+    if (fac) return '** Dealing Faculty Dashboard **';
+    return 'Dashboard';
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Pagination
+  // ────────────────────────────────────────────────────────────────────────────
+
+  const totalPages = Math.max(1, Math.ceil(visibleApplications.length / PAGE_SIZE));
+  const pagedRows = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return visibleApplications.slice(start, start + PAGE_SIZE);
+  }, [visibleApplications, currentPage]);
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Actions
+  // ────────────────────────────────────────────────────────────────────────────
+
+  // Accept application
+  const handleAccept = useCallback(async (app: Application) => {
+    if (!confirm('Accept this application?')) return;
+    setLoading(true);
+    const res = await sendApproveRequest(app.registrationNo, 'Accept');
+    setLoading(false);
+    if (res.status === 'success' && res.ApiData?.item1?.[0]?.msg === 'Approved') {
+      addToast('success', 'Application accepted successfully!');
+      void loadDashboard();
+    } else {
+      addToast('error', 'Failed to accept application.', res.message);
+    }
+  }, [addToast, loadDashboard]);
+
+  // Disapprove application
+  const handleDisapprove = useCallback(async (app: Application) => {
+    const reason = prompt('Reason for Disapproval (required):');
+    if (!reason?.trim()) return;
+    setLoading(true);
+    const res = await sendApproveRequest(app.registrationNo, 'Disapprove', reason);
+    setLoading(false);
+    if (res.status === 'success') {
+      addToast('success', 'Application disapproved.');
+      void loadDashboard();
+    } else {
+      addToast('error', 'Failed to disapprove.', res.message);
+    }
+  }, [addToast, loadDashboard]);
+
+  // Forward to HOD / HoW / Faculty
+  const handleForward = useCallback(async (app: Application, target: 'Hod' | 'How' | 'Faculty') => {
+    const label = target === 'Hod' ? 'HOD UID' : target === 'How' ? 'HoW UID' : 'Faculty UID';
+    const uid = prompt(`Enter ${label}:`);
+    if (!uid?.trim()) return;
+    setLoading(true);
+    const res = await sendForwardRequest(app.registrationNo, uid.trim(), target);
+    setLoading(false);
+    if (res.status === 'success' && res.ApiData?.item1?.[0]?.msg === 'Success') {
+      addToast('success', 'Forwarded successfully!');
+      void loadDashboard();
+    } else {
+      addToast('error', 'Forward action failed.', res.message);
+    }
+  }, [addToast, loadDashboard]);
+
+  // Open evaluation modal
+  const handleOpenEval = useCallback((app: Application, by: string) => {
+    setActiveApp(app);
+    setRemarksBy(by);
+    // prefill form if cached
+    const cached = evalCacheRef.current.get(app.registrationNo);
+    setEvalForm(cached ? {
+      academicsMarks: cached.academicsMarks ?? '',
+      communicationSkillsMarks: cached.communicationSkillsMarks ?? '',
+      attitudeMarks: cached.attitudeMarks ?? '',
+      extraCurricularMarks: cached.extraCurricularMarks ?? '',
+      knowledgeMarks: cached.knowledgeMarks ?? '',
+      comments: cached.comments ?? '',
+    } : EMPTY_EVAL);
+    setShowEvalModal(true);
+  }, []);
+
+  const handleEvalSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeApp) { addToast('error', 'No active application'); return; }
+    // basic validation
+    const numericFields = ['academicsMarks','communicationSkillsMarks','attitudeMarks','extraCurricularMarks','knowledgeMarks'] as const;
+    for (const f of numericFields) {
+      const v = (evalForm as any)[f];
+      if (v === '' || isNaN(Number(v)) || Number(v) < 0 || Number(v) > 100) {
+        addToast('error', 'Please enter valid marks (0-100) for all fields');
+        return;
+      }
+    }
+    setEvalLoading(true);
+    try {
+      // Simulate saving to server by caching locally
+      const payload = { ...evalForm, registrationNo: activeApp.registrationNo, applicationId: activeApp.applicationId, remarksBy };
+      evalCacheRef.current.set(activeApp.registrationNo, payload);
+      addToast('success', 'Evaluation submitted');
+      setShowEvalModal(false);
+      // Optionally refresh data
+      await loadDashboard();
+    } catch (err) {
+      addToast('error', 'Failed to submit evaluation');
+    } finally {
+      setEvalLoading(false);
+    }
+  }, [activeApp, evalForm, addToast, loadDashboard, remarksBy]);
+
+  const viewEvaluationRemarks = useCallback(async (app: Application) => {
+    setViewEvalLoading(true);
+    setShowViewEvalModal(true);
+    try {
+      const cached = evalCacheRef.current.get(app.registrationNo);
+      if (cached) {
+        setViewEvalData(cached);
+      } else {
+        // Attempt to find from authorityRemarks as fallback
+        const ar = authorityRemarks.find(x => x.registrationNo === app.registrationNo);
+        if (ar) {
+          // Map AuthorityRemarks -> EvalForm-ish object
+          setViewEvalData({
+            registrationNo: app.registrationNo,
+            academicsMarks: (ar as any).AcademicsMarks ?? (ar as any).academicsMarks ?? '',
+            communicationSkillsMarks: (ar as any).CommunicationSkillsMarks ?? '',
+            attitudeMarks: (ar as any).AttitudeMarks ?? '',
+            extraCurricularMarks: (ar as any).ExtraCurricularMarks ?? '',
+            knowledgeMarks: (ar as any).KnowledgeMarks ?? '',
+            comments: ar.counsellingRemarks ?? ar.ApprovalRemarks ?? '',
+            remarksBy: ar.hodRemarks ?? ar.facultyRemarks ?? '',
+          });
+        } else {
+          setViewEvalData(null);
+          addToast('info', 'No evaluation remarks found for this student');
+        }
+      }
+    } catch (err) {
+      addToast('error', 'Failed to load evaluation remarks');
+    } finally {
+      setViewEvalLoading(false);
+    }
+  }, [authorityRemarks, addToast]);
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Boot: load employee → applications → authority remarks
+  // ────────────────────────────────────────────────────────────────────────────
+
+  const loadDashboard = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Employee - normalize result shape
+      const empResult = await getEmployeeDetails();
+      // console.log('[loadDashboard] getEmployeeDetails ->', empResult);
+
+      let emp: any = null;
+      if (Array.isArray(empResult)) {
+        emp = empResult[0] ?? null;
+      } else if (Array.isArray(empResult?.item1)) {
+        emp = empResult.item1[0] ?? null;
+      } else if (Array.isArray(empResult?.item1?.item1)) {
+        emp = empResult.item1.item1[0] ?? null;
+      } else {
+        emp = empResult ?? null;
+      }
+
+      if (!emp) {
+        setIsLoginFailed(true);
+        return;
+      }
+
+      const code = String(emp.employeeCode ?? '').trim();
+      setEmployeeName(emp.employeeName ?? '');
+      setEmployeeCode(code);
+      setDepartmentName(emp.departmentName ?? '');
+
+      // Applications - normalize result shape
+      const appResult = await getAllApplications();
+      // console.log('[loadDashboard] getAllApplications ->', appResult);
+
+      let appsArr: any[] = [];
+      if (Array.isArray(appResult)) {
+        appsArr = appResult;
+      } else if (Array.isArray(appResult?.item1)) {
+        appsArr = appResult.item1;
+      } else if (Array.isArray(appResult?.ApiData?.item1)) {
+        appsArr = appResult.ApiData.item1;
+      } else if (Array.isArray(appResult?.ApiData)) {
+        appsArr = appResult.ApiData;
+      } else {
+        appsArr = [];
+      }
+
+      // Ensure array
+      appsArr = Array.isArray(appsArr) ? appsArr : [];
+
+      // Enrich with role flags and set state
+      const { enriched, visible, da, hod, how, fac } = enrichApplications(appsArr as Application[], code);
+      setAllApplications(enriched);
+      setVisibleApplications(visible);
+      setIsdealingFaculty(fac);
+      setIsDealingAuthority(da);
+      setIsHOD(hod);
+      setIsHoW(how);
+
+      // Update page title based on role and reset pagination
+      setPageTitle(buildPageTitle(da, hod, how, fac));
+      setCurrentPage(1);
+
+      // Load authority remarks (normalize)
+      try {
+        const ar = await getAllAuthorityRemarks();
+        let remarksArr: any[] = [];
+        if (Array.isArray(ar?.ApiData?.item1)) remarksArr = ar.ApiData.item1;
+        else if (Array.isArray(ar?.item1)) remarksArr = ar.item1;
+        else if (Array.isArray(ar)) remarksArr = ar;
+        setAuthorityRemarks(remarksArr);
+      } catch (innerErr) {
+        console.warn('[loadDashboard] failed to load authority remarks', innerErr);
+      }
+
+    } catch (err) {
+      console.error('[loadDashboard] error', err);
+      setIsLoginFailed(true);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void loadDashboard(); }, [loadDashboard]);
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Pure helpers (no state)
+  // ────────────────────────────────────────────────────────────────────────────
+
+  function enrichApplications(apps: Application[], empCode: string) {
+    let da = false, hod = false, how = false, fac = false;
+
+    const enriched = apps.map(app => {
+      const authority = String(app.dealingAuthority ?? '').trim();
+      const hodId = String(app.dealingHODId ?? '').trim();
+      const howId = String(app.dealingHow ?? '').trim();
+      const faculty = String(app.dealingFaculty ?? '').trim();
+
+      // Reset row flags
+      app.isDealingAuthority = false;
+      app.isHOD = false;
+      app.isHoW = false;
+      app.isdealingFaculty = false;
+
+      if (empCode) {
+        if (authority === empCode) { app.isDealingAuthority = true; da = true; }
+        else if (hodId === empCode) { app.isHOD = true; hod = true; }
+        else if (howId === empCode) { app.isHoW = true; how = true; }
+        else if (faculty === empCode) { app.isdealingFaculty = true; fac = true; }
+      }
+      return app;
+    });
+
+    const anyRole = da || hod || how || fac;
+    const visible = anyRole
+      ? enriched.filter(a => a.isDealingAuthority || a

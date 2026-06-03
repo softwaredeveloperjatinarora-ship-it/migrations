@@ -1,15 +1,15 @@
 'use server';
 
 /**
- * POST Action: sendApproveRequest
- * Endpoint: /SemesterExchangeStudent/ApproveStudent
- * Accepts or disapproves a student application.
+ * POST Action: sendForwardRequest
+ * Endpoint: /SemesterExchangeStudent/ForwardStudenttoHOD
+ * Forwards a student application to HoD, HoW, or Faculty.
  *
- * @param registrationNo  - Student registration number
- * @param action          - 'Accept' | 'Disapprove'
- * @param approvalRemarks - Required when action = 'Disapprove'
+ * @param registrationNo - Student registration number
+ * @param targetUID      - Employee code of the receiving authority
+ * @param userAction     - 'Hod' | 'How' | 'Faculty'
  *
- * Success condition: response.data.item1[0].msg === 'Approved'
+ * Success condition: response.data.item1[0].msg === 'Success'
  */
 
 import axios from 'axios';
@@ -18,10 +18,10 @@ import { authOptions } from '@/utils/authOptions';
 import https from 'https';
 import urls from '@/app/url';
 
-export async function sendApproveRequest(
-  RegistrationNo: string,//RegistrationNo
-  Action: 'Accept' | 'Disapprove',
-  ApprovalRemarks?: string,
+export async function sendForwardRequest(
+  registrationNo: string,
+  targetUID: string,
+  userAction: 'Hod' | 'How' | 'Faculty',
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.token) {
@@ -29,23 +29,20 @@ export async function sendApproveRequest(
   }
 
   const agent = new https.Agent({ rejectUnauthorized: false });
- const token = session?.user?.token;
+  
  const TOKEN = process.env.TOKEN;
   const formData = new FormData();
-  formData.append('RegistrationNo', RegistrationNo);
-  formData.append('Action', Action);
-  if (ApprovalRemarks) {
-    formData.append('ApprovalRemarks', ApprovalRemarks);
-  }
+  formData.append('RegistrationNo', registrationNo);
+  formData.append('HODUID', targetUID);       // API param name kept as-is
+  formData.append('UserAction', userAction);  // 'Hod' | 'How' | 'Faculty'
+
   try {
-    
     const response = await axios.post(
-      // `https://localhost:7135/api/SemesterExchangeStudentBridge/ApproveStudent`,
-      `${urls.basewebapiurl}/SemesterExchangeStudentBridge/ApproveStudent`,
+      `${urls.basewebapiurl}/SemesterExchangeStudentBridge/ForwardStudenttoHOD`,
       formData,
       {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${session?.user?.token}`,
           // Authorization: `Bearer ${TOKEN}`,
         },
         httpsAgent: agent,
@@ -53,7 +50,7 @@ export async function sendApproveRequest(
     );
 
     return {
-      message: 'Request processed successfully',
+      message: 'Forward request sent successfully',
       status: 'success',
       ApiData: response.data,
     };
