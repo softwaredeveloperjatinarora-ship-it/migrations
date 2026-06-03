@@ -286,7 +286,7 @@ const SemesterExchangeApplicationDetails = ({ registrationNo }: Props) => {
           <Button
             variant="outlined"
             startIcon={<ArrowBackIcon />}
-            onClick={() => router.push("/dashboard/staff/SemesterExchange/StaffDashboard")}
+            onClick={() => router.push("/dashboard/staff/SemesterExchange/SMAdmin")}
           >
             Back to Dashboard
           </Button>
