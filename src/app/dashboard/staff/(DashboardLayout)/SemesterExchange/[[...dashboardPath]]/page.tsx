@@ -26,10 +26,11 @@ export default async function SemesterExchangeStaffDashboardPage({ params }: Pag
   if (!activeRoute) {
     return (
       <PageContainer title="Error" description="Page not found">
-        <div style={{ padding: '40px', textAlign: 'center', color: '#ff4d4f' }}>
+        {/* <div style={{ padding: '40px', textAlign: 'center', color: '#ff4d4f' }}>
           <h3 style={{ fontSize: '24px', marginBottom: '10px' }}>404 - Dashboard Not Found</h3>
           <p>The URL layout structure or route identifier is invalid.</p>
-        </div>
+        </div> */}
+        <SemesterExchangeStaffDashboard />
       </PageContainer>
     );
   }
